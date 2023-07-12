@@ -1,0 +1,12 @@
+{
+  "type": "content",
+  "name": "Super Trains",
+  "modid": "supertrains",
+  "version": "0.0.1",
+  "authors": ["Alkinesio", "Guartis"],
+  "description": "Cool trains.",
+  "side": "Server",
+  "dependencies": { 
+	"game": "1.18.0"
+  }
+}

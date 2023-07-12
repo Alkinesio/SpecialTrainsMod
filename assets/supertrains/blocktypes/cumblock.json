@@ -1,0 +1,8 @@
+{
+	"code": "cumblock",
+	"creativeinventory": {"general": ["*"]},
+	"blockmaterial": "Stone",
+	"drawtype": "Cube",
+	"textures": { "all": { "base": "supertrains:block/cum_normal" } },
+	"resistance": 1.0
+} 
