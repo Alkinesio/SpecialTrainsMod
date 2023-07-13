@@ -1,0 +1,20 @@
+Stone axle
+	Description: like the wooden axle but with gray texture.
+	Crafting (x2):
+			Any_hammer   //   //
+			Any_chisel   //   //
+			Any_stone Lump_of_fat //
+
+Wooden piston
+	Description: able to move blocks with durability less than 2.0
+	Crafting:
+			 // 	   Any_planks 	//
+			Lump_of_fat Wooden_axle Lump_of_fat
+			Any_stone  Any_stone  Any_stone
+
+Metal piston
+	Description: able to move blocks with durability less than [insert]
+	Crafting:
+			 //	      Iron_plate  	 //
+		   Oiled_Hide[Medium] Stone_axle Oiled_Hide[Medium]
+		      Iron_block      Iron_block     Iron_block
