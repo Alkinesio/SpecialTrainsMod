@@ -1,18 +1,15 @@
 {
-	code: "wooden_rails_1x1",
-	combustibleProps: {
-		burnTemperature: 700,
-		burnDuration: 45,
-	},
+	code: "golden_rails_1x1",
 	creativeinventory: { "general": ["*"], "mechanics": ["*"]},
 	textureWidth: 16,
 	textureHeight: 16,
 	textureSizes: {
 	},
-	shape: { base: "block/wooden_rails/wooden_rails_1x1" },
-	blockmaterial: "Wood",
+	shape: { base: "block/golden_rails/golden_rails_1x1" },
+	blockmaterial: "Metal",
 	textures: {
-		wood: { base: "block/wood" }
+		iron: { base: "block/iron" },
+		gold: { base: "block/gold" }
 	},
 	sidesolid: {
 		all: false
@@ -20,15 +17,15 @@
 	sideopaque: {
 		all: false
 	},
-	resistance: 2.0,
+	resistance: 12.0,
 	lightAbsorption: 0,
 	collisionbox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.125, z2: 1 },
 	selectionbox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 0.125, z2: 1 },
 	sounds: {
-		"place": "block/planks",
-		"hit": "block/planks",
-		"break": "block/planks",
-		"walk": "walk/wood"
+		"place": "block/ceramicplace",
+		"hit": "block/ceramichit",
+		"break": "block/loosestone4",
+		"walk": "walk/stone"
 	},
 	guiTransform: {
 		translation: { x: 0, y: 2, z: 0 },
@@ -50,5 +47,5 @@
 		rotation: { x: 0, y: -50, z: 67 },
 		origin: { x: 0.5, y: 0.13, z: 0.5 }
 	},
-	materialDensity: 600
+	materialDensity: 1200
 }
