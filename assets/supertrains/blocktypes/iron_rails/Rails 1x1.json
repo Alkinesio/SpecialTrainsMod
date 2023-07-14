@@ -1,8 +1,13 @@
 {
+	"code": "iron_rails_1x1",
+	"creativeinventory": { "general": ["*"], "mechanics": ["*"] },
+	"blockmaterial": "Stone",
+	"requiredMiningTier": 2,
 	"editor": {
 		"allAngles": false,
 		"entityTextureMode": false
 	},
+	"resistance": 4.0,
 	"textureWidth": 16,
 	"textureHeight": 16,
 	"textureSizes": {

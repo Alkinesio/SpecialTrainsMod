@@ -1,8 +1,28 @@
 {
+	"code": "wooden_rails_1x1",
+	"creativeinventory": { "general": ["*"], "mechanics": ["*"] },
+	"blockmaterial": "Wood",
+	"requiredMiningTier": 1,
 	"editor": {
 		"allAngles": false,
 		"entityTextureMode": false
 	},
+	"resistance": 2.0,
+	sounds: {
+		"place": "block/planks",
+		"walk": "walk/wood",
+		"hit": "block/planks",
+		"break": "block/planks",
+		byTool: {
+			"Axe": { hit: "block/chop", break: "block/wooden_rails_1x1" }
+		}
+	},
+	combustiblePropsByType: {
+        "*": {
+            burnTemperature: 800,
+            burnDuration: 90,
+        }
+	}
 	"textureWidth": 16,
 	"textureHeight": 16,
 	"textureSizes": {
