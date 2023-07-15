@@ -1,0 +1,12 @@
+{
+	ingredientPattern: "GHG,P_P",
+	ingredients: {
+		"G": { type: "item", code: "supertrains:golden_plank" },
+		"H": { type: "item", code: "game:hammer-*", isTool: true, toolDurabilityCost: 2 },
+		"P": { type: "item", code: "supertrains:iron_plank" }
+	},
+	width: 3,
+	height: 2,
+	shapeless: false,
+	output: { type: "block", code: "golden_rails_1x1", quantity: 2 }
+}

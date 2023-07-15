@@ -1,7 +1,7 @@
 {
 	ingredientPattern: "PSP,WFW",
 	ingredients: {
-		"P": { type: "item", code: "game:metalplate-iron" },
+		"P": { type: "item", code: "supertrains:iron_plank" },
 		"W": { type: "item", code: "game:plank-*", "name": "wood" },
 		"S": { type: "item", code: "game:saw-*", isTool: true, toolDurabilityCost: 1 },
 		"F": { type: "item", code: "game:firewood" }

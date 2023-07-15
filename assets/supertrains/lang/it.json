@@ -1,5 +1,7 @@
 {
 	"block-wooden_rails_1x1": "Binari in legno",
 	"block-iron_rails_1x1": "Binari in ferro",
-	"block-golden_rails_1x1": "Binari in oro"
+	"block-golden_rails_1x1": "Binari in oro",
+	"item-iron_plank": "Asse (Ferro)",
+	"item-golden_plank": "Asse (Oro)"
 }

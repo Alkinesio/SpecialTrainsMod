@@ -3,13 +3,12 @@
 	creativeinventory: { "general": ["*"], "mechanics": ["*"]},
 	textureWidth: 16,
 	textureHeight: 16,
-	textureSizes: {
-	},
+	textureSizes: {},
 	shape: { base: "block/golden_rails/golden_rails_1x1" },
 	blockmaterial: "Metal",
 	textures: {
 		iron: { base: "block/iron" },
-		gold: { base: "block/gold" }
+		gold: { base: "game:block/metal/ingot/gold" }
 	},
 	sidesolid: {
 		all: false
