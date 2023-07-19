@@ -22,6 +22,8 @@
 	textures: {
 		gold: { base: "game:block/metal/ingot/gold" }
 	},
+	resistance: 20,
+	requiredminingtier: 3,
 	creativeinventory: { "general": ["*"], "items": ["*"] },
 	materialDensity: 900,
 	guiTransform: {

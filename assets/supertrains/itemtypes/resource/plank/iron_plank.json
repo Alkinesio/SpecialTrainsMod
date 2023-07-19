@@ -22,6 +22,8 @@
 	textures: {
 		iron: { base: "game:block/metal/ingot/iron" }
 	},
+	resistance: 16,
+	requiredminingtier: 3,
 	creativeinventory: { "general": ["*"], "items": ["*"] },
 	materialDensity: 800,
 	guiTransform: {
