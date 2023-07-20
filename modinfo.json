@@ -1,12 +1,11 @@
 {
   "type": "code",
-  "name": "Super Trains",
   "modid": "supertrains",
-  "version": "0.0.1",
-  "authors": ["Alkinesio", "Guartis"],
-  "description": "Cool trains for smart guys like you. v.1.18 required",
-  "side": "Server",
-  "dependencies": { 
-	"game": "1.18.0"
+  "name": "supertrains",
+  "authors": ["Unknown"],
+  "description": "To be added",
+  "version": "1.0.0",
+  "dependencies": {
+    "game": "1.18.6"
   }
 }

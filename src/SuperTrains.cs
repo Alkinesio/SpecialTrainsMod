@@ -7,9 +7,14 @@ namespace SuperTrains
     public class SuperTrainsMod : ModSystem
     {
 
+        private string modId = ModInfo.ToModID("supertrains");
+
         public override void Start(ICoreAPI api)
         {
             base.Start(api);
+            api.RegisterBlockClass("simplerails", typeof(SimpleRailsBlock));
         }
+
+        public string getModID() { return modId; }
     }
 }
