@@ -1,13 +1,41 @@
+using SuperTrains.Utilities;
+using System;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
 using Vintagestory.GameContent;
+
+using Blocks = SuperTrains.Utilities.Blocks;
 
 
 namespace SuperTrains
 {
     public class SimpleRailsBlock : Block
     {
+
+        // APIs
+        ICoreAPI API;
+        ICoreServerAPI sAPI; // Client side
+        ICoreClientAPI cAPI; // Server side
+
+        public override void OnLoaded(ICoreAPI api)
+        {
+            base.OnLoaded(api);
+            this.API = api;
+
+            if (api.Side == EnumAppSide.Server)
+            {
+                sAPI = api as ICoreServerAPI;
+            }
+            else
+            {
+                cAPI = api as ICoreClientAPI;
+            }
+        }
+
         /// <summary>Try and place the block.</summary>
         /// <returns>True if the blocked is correctly placed.</returns>
         public override bool TryPlaceBlock(IWorldAccessor world, IPlayer byPlayer, ItemStack itemstack, BlockSelection blockSel, ref string failureCode)
@@ -18,79 +46,237 @@ namespace SuperTrains
                 return false;
             }
 
+            // Cannot place rails on other rails
+            if (Rails.countRailsOnUD(world, blockSel.Position) > 0)
+            {
+                return false;
+            }
+
             // Set orientation (flip if horizontal/vertical)
             BlockFacing targetFacing = Block.SuggestedHVOrientation(byPlayer, blockSel)[0];
 
-            // Check for curves, raised and/or other types
-            for (int i = 0; i < BlockFacing.HORIZONTALS.Length; i++)
+            // Check for curves
+            if (this.TryPlaceCurve(world, byPlayer, blockSel.Position, BlockFacing.HORIZONTALS))
             {
-                BlockFacing facing = BlockFacing.HORIZONTALS[i];
-                if (this.TryAttachPlaceToHorizontal(world, byPlayer, blockSel.Position, facing, targetFacing))
+                return true;
+            }
+
+            // Place the block as flat with got values
+            world.GetBlock(base.CodeWithParts(targetFacing.Axis == EnumAxis.Z ? "flat_ns" : "flat_we"))
+                .DoPlaceBlock(world, byPlayer, blockSel, itemstack);
+            return true;
+        }
+
+        public override bool OnBlockBrokenWith(IWorldAccessor world, Entity byEntity, ItemSlot itemslot, BlockSelection blockSel, float dropQuantityMultiplier = 1)
+        {
+            // Call default method
+            if (base.OnBlockBrokenWith(world, byEntity, itemslot, blockSel, dropQuantityMultiplier) == false)
+                return false;
+
+            // Update linked rails (set horizontal/vertical orientation)
+            // TODO ...
+            return true;
+        }
+
+        /// <summary>
+        /// Try to place rails as curve type if possible, else nothing will happen.
+        /// </summary>
+        /// <returns>True if placed as curve.</returns>
+        private bool TryPlaceCurve(IWorldAccessor world, IPlayer byPlayer, BlockPos position, BlockFacing[] blockFacing)
+        {
+            // Set counting on oblique faces (NE, SE, SW, NW)
+            int NERails = Rails.countRailsOnNE(world, position);
+            int SERails = Rails.countRailsOnSE(world, position);
+            int SWRails = Rails.countRailsOnSW(world, position);
+            int NWRails = Rails.countRailsOnNW(world, position);
+
+            // Returns if there are not enough rails on oblique faces to make a curve
+            // For example if there are two rails (on North and East faces) then can make the curve
+            if (NERails < 2 && SERails < 2 && SWRails < 2 && NWRails < 2)
+                return false;
+
+            // Set the target curve (NE, SE, SW, NW)
+            string targetCurve = null;
+            // Get first player orientation (used for close rails count greater than 2 pieces)
+            string playerFacing = Blocks.DirectionToString(Blocks.ObliqueFromAngle(GameMath.Mod(byPlayer.Entity.Pos.Yaw, (float)Math.PI * 2f)));
+            /* Additional info: 
+                    - x: placing curve;
+                    - X: rails;
+                    - -: not rails;
+            */
+            /* Case NESW:
+             * - X -
+             * X x X    => Will depend from player facing
+             * - X -
+             */
+            if (NERails >= 2 && NWRails >= 2 && SERails >= 2 && SWRails >= 2)
+            {
+                targetCurve = playerFacing;
+            }
+            /* Case NEW:
+            * - X -
+            * X x X    => Will depend from player facing
+            * - - -
+            */
+            else if (NERails >= 2 && NWRails >= 2)
+            {
+                if (playerFacing == "sw")
                 {
+                    targetCurve = "nw";
+                }
+                else if (playerFacing == "se")
+                {
+                    targetCurve = "ne";
+                }
+                else
+                {
+                    targetCurve = playerFacing;
+                }
+            }
+            /* Case NES:
+            * - X -
+            * - x X    => Will depend from player facing
+            * - X -
+            */
+            else if (NERails >= 2 && SERails >= 2)
+            {
+                if (playerFacing == "nw")
+                {
+                    targetCurve = "ne";
+                }
+                else if (playerFacing == "sw")
+                {
+                    targetCurve = "se";
+                }
+                else
+                {
+                    targetCurve = playerFacing;
+                }
+            }
+            /* Case ESW:
+            * - - -
+            * X x X    => Will depend from player facing
+            * - X -
+            */
+            else if (SERails >= 2 && SWRails >= 2)
+            {
+                if (playerFacing == "ne")
+                {
+                    targetCurve = "se";
+                }
+                else if (playerFacing == "nw")
+                {
+                    targetCurve = "sw";
+                }
+                else
+                {
+                    targetCurve = playerFacing;
+                }
+            }
+            /* Case NSW:
+            * - X -
+            * X x -    => Will depend from player facing
+            * - X -
+            */
+            else if (NWRails >= 2 && SWRails >= 2)
+            {
+                if (playerFacing == "ne")
+                {
+                    targetCurve = "nw";
+                }
+                else if (playerFacing == "se")
+                {
+                    targetCurve = "sw";
+                }
+                else
+                {
+                    targetCurve = playerFacing;
+                }
+            }
+            /* Case NW:
+            * - X -
+            * X x -    => Will be NW
+            * - - -
+            */
+            else if (NWRails >= 2)
+            {
+                targetCurve = "nw";
+            }
+            /* Case NE:
+            * - X -
+            * - x X    => Will be NE
+            * - - -
+            */
+            else if (NERails >= 2)
+            {
+                targetCurve = "ne";
+            }
+            /* Case SE:
+            * - - -
+            * - x X    => Will be SE
+            * - X -
+            */
+            else if (SERails >= 2)
+            {
+                targetCurve = "se";
+            }
+            /* Case SW:
+            * - - -
+            * X x -    => Will be SW
+            * - X -
+            */
+            else if (SWRails >= 2)
+            {
+                targetCurve = "sw";
+            }
+            // Impossible case
+            else
+            {
+                return false;
+            }
+
+            // Finally place the curve and returns true if everything is fine
+            Block curveToPlace = world.GetBlock(base.CodeWithParts("curved_" + targetCurve));
+            if (curveToPlace != null)
+            {
+                // If placed correctly the curve
+                if (this.placeIfSuitable(world, byPlayer, curveToPlace, position))
+                {
+                    // Update linked rails (set horizontal/vertical orientation)
+                    BlockFacing[] orientation = new BlockFacing[2];
+                    switch (targetCurve)
+                    {
+                        case "ne":
+                            orientation[0] = BlockFacing.NORTH;
+                            orientation[1] = BlockFacing.EAST;
+                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                            break;
+                        case "nw":
+                            orientation[0] = BlockFacing.NORTH;
+                            orientation[1] = BlockFacing.WEST;
+                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                            break;
+                        case "sw":
+                            orientation[0] = BlockFacing.SOUTH;
+                            orientation[1] = BlockFacing.WEST;
+                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                            break;
+                        case "se":
+                            orientation[0] = BlockFacing.SOUTH;
+                            orientation[1] = BlockFacing.EAST;
+                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                            break;
+                    }
+
                     return true;
                 }
             }
 
-            // Place the block with got values
-            Block blockToPlace;
-            if (targetFacing.Axis == EnumAxis.Z)
-            {
-                blockToPlace = world.GetBlock(base.CodeWithParts("flat_ns"));
-            }
-            else
-            {
-                blockToPlace = world.GetBlock(base.CodeWithParts("flat_we"));
-            }
-            blockToPlace.DoPlaceBlock(world, byPlayer, blockSel, itemstack);
-            return true;
-        }
-
-        private bool TryAttachPlaceToHorizontal(IWorldAccessor world, IPlayer byPlayer, BlockPos position, BlockFacing toFacing, BlockFacing targetFacing)
-        {
-            // Make a copy of the block close to It where is facing (neighbor)
-            BlockPos neibPos = position.AddCopy(toFacing);
-            Block neibBlock = world.BlockAccessor.GetBlock(neibPos);
-
-            // Check if the close block is a simple rail or not (returns in the case)
-            // TODO: Place the rails if on this block there are other rails
-            if (!(neibBlock is SimpleRailsBlock))
-            {
-                return false;
-            }
-
-            // etc ...
-            BlockFacing fromFacing = toFacing.Opposite;
-            BlockFacing[] neibDirFacings = this.getFacingsFromType(neibBlock.Variant["type"]);
-            if (world.BlockAccessor.GetBlock(neibPos.AddCopy(neibDirFacings[0])) is SimpleRailsBlock && world.BlockAccessor.GetBlock(neibPos.AddCopy(neibDirFacings[1])) is SimpleRailsBlock)
-            {
-                return false;
-            }
-            BlockFacing neibFreeFace = this.getOpenedEndedFace(neibDirFacings, world, position.AddCopy(toFacing));
-            if (neibFreeFace == null)
-            {
-                return false;
-            }
-            Block blockToPlace = this.getRailBlock(world, "curved_", toFacing, targetFacing);
-            if (blockToPlace != null)
-            {
-                return this.placeIfSuitable(world, byPlayer, blockToPlace, position);
-            }
-            string dirs = neibBlock.Variant["type"].Split(new char[]
-            {
-                '_'
-            })[1];
-            BlockFacing neibKeepFace = (dirs[0] == neibFreeFace.Code[0]) ? BlockFacing.FromFirstLetter(dirs[1]) : BlockFacing.FromFirstLetter(dirs[0]);
-            Block block = this.getRailBlock(world, "curved_", neibKeepFace, fromFacing);
-            if (block == null)
-            {
-                return false;
-            }
-            block.DoPlaceBlock(world, byPlayer, new BlockSelection
-
-            {
-                Position = position.AddCopy(toFacing),
-                Face = BlockFacing.UP
-            }, null);
+            // Impossible case
             return false;
         }
 
@@ -104,8 +290,7 @@ namespace SuperTrains
             };
             if (block.CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
             {
-                block.DoPlaceBlock(world, byPlayer, blockSel, null);
-                return true;
+                return block.DoPlaceBlock(world, byPlayer, blockSel, null);
             }
             return false;
         }
@@ -120,6 +305,7 @@ namespace SuperTrains
             return world.GetBlock(base.CodeWithParts(prefix + dir1.Code[0].ToString() + dir0.Code[0].ToString()));
         }
 
+        /// <returns>Facing North or East if the block is simple rails (else null).</returns>
         private BlockFacing getOpenedEndedFace(BlockFacing[] dirFacings, IWorldAccessor world, BlockPos blockPos)
         {
             if (!(world.BlockAccessor.GetBlock(blockPos.AddCopy(dirFacings[0])) is SimpleRailsBlock))

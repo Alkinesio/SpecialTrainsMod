@@ -6,7 +6,7 @@
 		burnDuration: 45,
 	},
 	variantgroups: [
-		{ code: "type", states: ["flat_ns", "flat_we", "raised_ns", "raised_we", "raised_continous_ns", "raised_continous_we", "curved_ns", "curved_we" ] }
+		{ code: "type", states: ["flat_ns", "flat_we", "raised_ns", "raised_we", "raised_continous_ns", "raised_continous_we", "curved_ne", "curved_nw", "curved_sw", "curved_se" ] }
 	],
 	creativeinventory: { "general": ["wooden_rails_1x1-flat_ns"], "mechanics": ["wooden_rails_1x1-flat_ns"]},
 	textureWidth: 16,
@@ -18,8 +18,10 @@
 		"*-raised_we":  { base: "block/wooden_rails/raised", rotateY: 90 },
 		"*-raised_continous_ns": { base: "block/wood/rails/raised_continous" },
 		"*-raised_continous_we": { base: "block/wood/rails/raised_continous", rotateY: 90 },
-		"*-curved_ns": { base: "block/wooden_rails/curved" },
-		"*-curved_we": { base: "block/wooden_rails/curved", rotateY: 180 },
+		"*-curved_ne": { base: "block/wooden_rails/curved", rotateY: 270 },
+		"*-curved_nw": { base: "block/wooden_rails/curved" },
+		"*-curved_sw": { base: "block/wooden_rails/curved", rotateY: 90 },
+		"*-curved_se": { base: "block/wooden_rails/curved", rotateY: 180 },
 		"*": { base: "block/wooden_rails/flat" },
 	},
 	blockmaterial: "Wood",
