@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Server;
 using Vintagestory.ServerMods.NoObf;
 
 namespace SuperTrains.Utilities
@@ -51,6 +53,42 @@ namespace SuperTrains.Utilities
         {
             Block[] blocks = { getNeighborBlockAtFace(world, position, BlockFacing.UP), getNeighborBlockAtFace(world, position, BlockFacing.DOWN) };
             return blocks;
+        }
+
+        /// <returns>Block at East face of a block where is to the given position.</returns>
+        public static Block getBlockToEast(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position, BlockFacing.EAST);
+        }
+
+        /// <returns>Block at North face of a block where is to the given position.</returns>
+        public static Block getBlockToNorth(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position, BlockFacing.NORTH);
+        }
+
+        /// <returns>Block at West face of a block where is to the given position.</returns>
+        public static Block getBlockToWest(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position, BlockFacing.WEST);
+        }
+
+        /// <returns>Block at South face of a block where is to the given position.</returns>
+        public static Block getBlockToSouth(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position, BlockFacing.SOUTH);
+        }
+
+        /// <returns>Block at Up face of a block where is to the given position.</returns>
+        public static Block getBlockToUp(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position, BlockFacing.UP);
+        }
+
+        /// <returns>Block at Down face of a block where is to the given position.</returns>
+        public static Block getBlockToDown(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position, BlockFacing.DOWN);
         }
 
         /// <summary>
@@ -187,7 +225,7 @@ namespace SuperTrains.Utilities
         /// </returns>
         public static BlockFacing[] StringToDirection(String text)
         {
-            if (text.Length > 2 || text.Length <= 0)
+            if (text == null || text.Length != 2)
                 return null;
 
             BlockFacing[] direction = new BlockFacing[2];
@@ -295,6 +333,29 @@ namespace SuperTrains.Utilities
         #endregion
     }
 
+    public static class Directions
+    {
+
+        /// <returns>True if the oblique direction (NE, NW, SW, SE) is correct.</returns>
+        public static bool isValidObliqueDirection(BlockFacing[] direction)
+        {
+            if (direction.Length != 2)
+                return false;
+
+            if (direction[0] == BlockFacing.NORTH && direction[1] == BlockFacing.EAST)
+                return true;
+            if (direction[0] == BlockFacing.NORTH && direction[1] == BlockFacing.WEST)
+                return true;
+            if (direction[0] == BlockFacing.SOUTH && direction[1] == BlockFacing.WEST)
+                return true;
+            if (direction[0] == BlockFacing.SOUTH && direction[1] == BlockFacing.EAST)
+                return true;
+
+            return false;
+        }
+
+    }
+
     public static class Rails
     {
         #region About faces
@@ -367,6 +428,66 @@ namespace SuperTrains.Utilities
                 if (blocks[i] is SimpleRailsBlock)
                     counter++;
             return counter;
+        }
+
+        /// <returns>True if there is a simple rails block at East face of the block.</returns>
+        public static bool isThereRailBlockToEast(IWorldAccessor world, BlockPos position)
+        {
+            return Blocks.getBlockToEast(world, position) is SimpleRailsBlock;
+        }
+
+        /// <returns>True if there is a simple rails block at North face of the block.</returns>
+        public static bool isThereRailBlockToNorth(IWorldAccessor world, BlockPos position)
+        {
+            return Blocks.getBlockToNorth(world, position) is SimpleRailsBlock;
+        }
+
+        /// <returns>True if there is a simple rails block at West face of the block.</returns>
+        public static bool isThereRailBlockToWest(IWorldAccessor world, BlockPos position)
+        {
+            return Blocks.getBlockToWest(world, position) is SimpleRailsBlock;
+        }
+
+        /// <returns>True if there is a simple rails block at South face of the block.</returns>
+        public static bool isThereRailBlockToSouth(IWorldAccessor world, BlockPos position)
+        {
+            return Blocks.getBlockToSouth(world, position) is SimpleRailsBlock;
+        }
+
+        #endregion
+        #region About generics
+
+        /// <returns>True if there is a simple rails block at the given position.</returns>
+        public static bool isThereRailBlock(IWorldAccessor world, BlockPos position)
+        {
+            return world.BlockAccessor.GetBlock(position.X, position.Y, position.Z) is SimpleRailsBlock;
+        }
+
+        /// <returns>True if the rail block is curved, else false.</returns>
+        public static bool isCurveRailBlock(Block block, ICoreAPI debugger)
+        {
+            // First check that provided block is a simple rails block
+            if (!(block is SimpleRailsBlock))
+                return false;
+
+            // Then check that the code of the block is actually that of a curved rail block
+            String x = block.Code.ToString().Split('-')[1];
+            if (debugger is ICoreServerAPI)
+                ((ICoreServerAPI)debugger).BroadcastMessageToAllGroups("x = " + x, EnumChatType.AllGroups);
+            switch (x)
+            {
+                case "curved_ne":
+                    return true;
+                case "curved_nw":
+                    return true;
+                case "curved_sw":
+                    return true;
+                case "curved_se":
+                    return true;
+            }
+
+            return false;
+            
         }
 
         #endregion

@@ -4,10 +4,10 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
-
 using Blocks = SuperTrains.Utilities.Blocks;
 
 
@@ -73,9 +73,14 @@ namespace SuperTrains
             if (base.OnBlockBrokenWith(world, byEntity, itemslot, blockSel, dropQuantityMultiplier) == false)
                 return false;
 
+            // Set block position
+            BlockPos position = blockSel.Position;
+
+            // Set player
+            IPlayer player = world.PlayerByUid((byEntity as EntityPlayer).PlayerUID);
+
             // Update linked rails (set horizontal/vertical orientation)
-            // TODO ...
-            return true;
+            return updateCloseRails(null, world, player, position);
         }
 
         /// <summary>
@@ -83,6 +88,59 @@ namespace SuperTrains
         /// </summary>
         /// <returns>True if placed as curve.</returns>
         private bool TryPlaceCurve(IWorldAccessor world, IPlayer byPlayer, BlockPos position, BlockFacing[] blockFacing)
+        {
+            // Set the curve type
+            String targetCurve = setCurve(world, byPlayer, position);
+
+            // If the set of the curve is invalid then returns false
+            if (targetCurve == null)
+            {
+                if (api == sAPI)
+                    sAPI.BroadcastMessageToAllGroups("Could not place curve, cause targetCurve is null", EnumChatType.AllGroups);
+                return false;
+            }
+
+            // Place the curve and returns true if everything is fine
+            Block curveToPlace = world.GetBlock(base.CodeWithParts("curved_" + targetCurve));
+            if (curveToPlace != null)
+            {
+                // If placed correctly the curve
+                if (this.placeIfSuitable(world, byPlayer, curveToPlace, position))
+                {
+                    // Update linked rails (set horizontal/vertical orientation)
+                    return updateCloseRails(targetCurve, world, byPlayer, position);
+                }
+                else
+                                if (api == sAPI)
+                    sAPI.BroadcastMessageToAllGroups("!", EnumChatType.AllGroups);
+            }
+
+            if (api == sAPI)
+                sAPI.BroadcastMessageToAllGroups("Could not place curve, cause curveToPlace is null", EnumChatType.AllGroups);
+
+            return false;
+        }
+
+        private bool placeIfSuitable(IWorldAccessor world, IPlayer byPlayer, Block block, BlockPos pos)
+        {
+            string failureCode = "";
+            BlockSelection blockSel = new BlockSelection
+            {
+                Position = pos,
+                Face = BlockFacing.UP
+            };
+            if (block.CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
+            {
+                return block.DoPlaceBlock(world, byPlayer, blockSel, null);
+            }
+            return false;
+        }
+
+        /// <returns>The string that represents the curve (that can be 'ne', 'nw', 'sw' or 'se').
+        /// <br/> Null if not set correctly. Be sure that position represents right coordinates where to set the curve.
+        /// <br/> This method does not place any block in the world.
+        /// </returns>
+        private String setCurve(IWorldAccessor world, IPlayer placer, BlockPos position)
         {
             // Set counting on oblique faces (NE, SE, SW, NW)
             int NERails = Rails.countRailsOnNE(world, position);
@@ -93,12 +151,12 @@ namespace SuperTrains
             // Returns if there are not enough rails on oblique faces to make a curve
             // For example if there are two rails (on North and East faces) then can make the curve
             if (NERails < 2 && SERails < 2 && SWRails < 2 && NWRails < 2)
-                return false;
+                return null;
 
-            // Set the target curve (NE, SE, SW, NW)
+            // Set the target curve (that can be NE, SE, SW, NW)
             string targetCurve = null;
             // Get first player orientation (used for close rails count greater than 2 pieces)
-            string playerFacing = Blocks.DirectionToString(Blocks.ObliqueFromAngle(GameMath.Mod(byPlayer.Entity.Pos.Yaw, (float)Math.PI * 2f)));
+            string playerFacing = Blocks.DirectionToString(Blocks.ObliqueFromAngle(GameMath.Mod(placer.Entity.Pos.Yaw, (float)Math.PI * 2f)));
             /* Additional info: 
                     - x: placing curve;
                     - X: rails;
@@ -229,107 +287,92 @@ namespace SuperTrains
             {
                 targetCurve = "sw";
             }
-            // Impossible case
-            else
+
+            return targetCurve;
+        }
+
+        /// <summary>
+        /// Update close rails to a curve (if set to null then the close curves will be set to their original shape).
+        /// </summary>
+        /// <returns>True if correctly updated close rails.</returns>
+        private bool updateCloseRails(string targetCurve, IWorldAccessor world, IPlayer placer, BlockPos position)
+        {
+            if (targetCurve == null)
             {
+                if (Rails.isThereRailBlockToEast(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToEast(world, position), api))
+                {
+                    if (api == sAPI)
+                        sAPI.BroadcastMessageToAllGroups("Updated block to East and set to flat ns", EnumChatType.AllGroups);
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.EAST)));
+                }
+                if (Rails.isThereRailBlockToNorth(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToNorth(world, position), api))
+                {
+                    if (api == sAPI)
+                        sAPI.BroadcastMessageToAllGroups("Updated block to North and set to flat we", EnumChatType.AllGroups);
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.NORTH)));
+                }
+                if (Rails.isThereRailBlockToWest(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToWest(world, position), api))
+                {
+                    if (api == sAPI)
+                        sAPI.BroadcastMessageToAllGroups("Updated block to West and set to flat ns", EnumChatType.AllGroups);
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.WEST)));
+                }
+                if (Rails.isThereRailBlockToSouth(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToSouth(world, position), api))
+                {
+                    if (api == sAPI)
+                        sAPI.BroadcastMessageToAllGroups("Updated block to South and set to flat we", EnumChatType.AllGroups);
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.SOUTH)));
+                }
+
+                if (api == sAPI)
+                    sAPI.BroadcastMessageToAllGroups("Updated correctly with target curve null (destroyed block kinda)", EnumChatType.AllGroups);
+
+                return true;
+            }
+
+            // Check given curve type is valid
+            BlockFacing[] orientation = Blocks.StringToDirection(targetCurve);
+            if (orientation == null || (!Directions.isValidObliqueDirection(orientation)))
+            {
+                if (api == sAPI)
+                    sAPI.BroadcastMessageToAllGroups("Returns false cause orientation is not valid to place this curve!", EnumChatType.AllGroups);
                 return false;
             }
 
-            // Finally place the curve and returns true if everything is fine
-            Block curveToPlace = world.GetBlock(base.CodeWithParts("curved_" + targetCurve));
-            if (curveToPlace != null)
+            // Update linked rails (set horizontal/vertical orientation)
+            switch (targetCurve)
             {
-                // If placed correctly the curve
-                if (this.placeIfSuitable(world, byPlayer, curveToPlace, position))
-                {
-                    // Update linked rails (set horizontal/vertical orientation)
-                    BlockFacing[] orientation = new BlockFacing[2];
-                    switch (targetCurve)
-                    {
-                        case "ne":
-                            orientation[0] = BlockFacing.NORTH;
-                            orientation[1] = BlockFacing.EAST;
-                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
-                            break;
-                        case "nw":
-                            orientation[0] = BlockFacing.NORTH;
-                            orientation[1] = BlockFacing.WEST;
-                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
-                            break;
-                        case "sw":
-                            orientation[0] = BlockFacing.SOUTH;
-                            orientation[1] = BlockFacing.WEST;
-                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
-                            break;
-                        case "se":
-                            orientation[0] = BlockFacing.SOUTH;
-                            orientation[1] = BlockFacing.EAST;
-                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                            world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
-                            break;
-                    }
-
-                    return true;
-                }
+                case "ne":
+                    orientation[0] = BlockFacing.NORTH;
+                    orientation[1] = BlockFacing.EAST;
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    break;
+                case "nw":
+                    orientation[0] = BlockFacing.NORTH;
+                    orientation[1] = BlockFacing.WEST;
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    break;
+                case "sw":
+                    orientation[0] = BlockFacing.SOUTH;
+                    orientation[1] = BlockFacing.WEST;
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    break;
+                case "se":
+                    orientation[0] = BlockFacing.SOUTH;
+                    orientation[1] = BlockFacing.EAST;
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    break;
             }
 
-            // Impossible case
-            return false;
-        }
 
-        private bool placeIfSuitable(IWorldAccessor world, IPlayer byPlayer, Block block, BlockPos pos)
-        {
-            string failureCode = "";
-            BlockSelection blockSel = new BlockSelection
-            {
-                Position = pos,
-                Face = BlockFacing.UP
-            };
-            if (block.CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
-            {
-                return block.DoPlaceBlock(world, byPlayer, blockSel, null);
-            }
-            return false;
-        }
+            if (api == sAPI)
+                sAPI.BroadcastMessageToAllGroups("Updated correctly with target curve (placed block kinda)", EnumChatType.AllGroups);
 
-        private Block getRailBlock(IWorldAccessor world, string prefix, BlockFacing dir0, BlockFacing dir1)
-        {
-            Block block = world.GetBlock(base.CodeWithParts(prefix + dir0.Code[0].ToString() + dir1.Code[0].ToString()));
-            if (block != null)
-            {
-                return block;
-            }
-            return world.GetBlock(base.CodeWithParts(prefix + dir1.Code[0].ToString() + dir0.Code[0].ToString()));
-        }
-
-        /// <returns>Facing North or East if the block is simple rails (else null).</returns>
-        private BlockFacing getOpenedEndedFace(BlockFacing[] dirFacings, IWorldAccessor world, BlockPos blockPos)
-        {
-            if (!(world.BlockAccessor.GetBlock(blockPos.AddCopy(dirFacings[0])) is SimpleRailsBlock))
-            {
-                return dirFacings[0];
-            }
-            if (!(world.BlockAccessor.GetBlock(blockPos.AddCopy(dirFacings[1])) is SimpleRailsBlock))
-            {
-                return dirFacings[1];
-            }
-            return null;
-        }
-
-        private BlockFacing[] getFacingsFromType(string type)
-        {
-            string codes = type.Split(new char[]
-            {
-                '_'
-            })[1];
-            return new BlockFacing[]
-            {
-                BlockFacing.FromFirstLetter(codes[0]),
-                BlockFacing.FromFirstLetter(codes[1])
-            };
+            return true;
         }
     }
 }
