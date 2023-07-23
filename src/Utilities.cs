@@ -457,24 +457,70 @@ namespace SuperTrains.Utilities
         #endregion
         #region About generics
 
+        /// <returns>True if the given block is a rails block.</returns>
+        public static bool isBlockRailsBlock(Block block)
+        {
+            return block is SimpleRailsBlock;
+        }
+
         /// <returns>True if there is a simple rails block at the given position.</returns>
         public static bool isThereRailBlock(IWorldAccessor world, BlockPos position)
         {
             return world.BlockAccessor.GetBlock(position.X, position.Y, position.Z) is SimpleRailsBlock;
         }
 
+        /// <returns>True if the rail block is flat, else false.</returns>
+        public static bool isFlatRailBlock(Block block)
+        {
+            // First check that provided block is a simple rails block
+            if (!(block is SimpleRailsBlock))
+                return false;
+
+            // Then check that the code of the block is actually that of a flat rail block
+            switch (block.Code.ToString().Split('-')[1])
+            {
+                case "flat_ns":
+                    return true;
+                case "flat_we":
+                    return true;
+            }
+
+            return false;
+
+        }
+
+        /// <returns>
+        /// A string that indicates the direction ('ns' or 'we') if the block is a flat rails block. 
+        /// <br/>Could return null if there are problems.
+        /// </returns>
+        public static String getFlatRailsDirection(Block block)
+        {
+            // First check that provided block is a simple rails block
+            if (!isFlatRailBlock(block))
+                return null;
+
+            // Then check that the code of the block is actually that of a flat rail block
+            switch (block.Code.ToString().Split('-')[1])
+            {
+                case "flat_ns":
+                    return "ns";
+                case "flat_we":
+                    return "we";
+            }
+
+            return null;
+
+        }
+
         /// <returns>True if the rail block is curved, else false.</returns>
-        public static bool isCurveRailBlock(Block block, ICoreAPI debugger)
+        public static bool isCurveRailBlock(Block block)
         {
             // First check that provided block is a simple rails block
             if (!(block is SimpleRailsBlock))
                 return false;
 
             // Then check that the code of the block is actually that of a curved rail block
-            String x = block.Code.ToString().Split('-')[1];
-            if (debugger is ICoreServerAPI)
-                ((ICoreServerAPI)debugger).BroadcastMessageToAllGroups("x = " + x, EnumChatType.AllGroups);
-            switch (x)
+            switch (block.Code.ToString().Split('-')[1])
             {
                 case "curved_ne":
                     return true;

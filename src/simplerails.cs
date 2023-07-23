@@ -16,26 +16,6 @@ namespace SuperTrains
     public class SimpleRailsBlock : Block
     {
 
-        // APIs
-        ICoreAPI API;
-        ICoreServerAPI sAPI; // Client side
-        ICoreClientAPI cAPI; // Server side
-
-        public override void OnLoaded(ICoreAPI api)
-        {
-            base.OnLoaded(api);
-            this.API = api;
-
-            if (api.Side == EnumAppSide.Server)
-            {
-                sAPI = api as ICoreServerAPI;
-            }
-            else
-            {
-                cAPI = api as ICoreClientAPI;
-            }
-        }
-
         /// <summary>Try and place the block.</summary>
         /// <returns>True if the blocked is correctly placed.</returns>
         public override bool TryPlaceBlock(IWorldAccessor world, IPlayer byPlayer, ItemStack itemstack, BlockSelection blockSel, ref string failureCode)
@@ -56,7 +36,13 @@ namespace SuperTrains
             BlockFacing targetFacing = Block.SuggestedHVOrientation(byPlayer, blockSel)[0];
 
             // Check for curves
-            if (this.TryPlaceCurve(world, byPlayer, blockSel.Position, BlockFacing.HORIZONTALS))
+            if (this.TryPlaceCurve(world, byPlayer, blockSel.Position))
+            {
+                return true;
+            }
+
+            // Check for raised
+            if (this.TryToPlaceRaised(world, byPlayer, blockSel.Position))
             {
                 return true;
             }
@@ -70,8 +56,10 @@ namespace SuperTrains
         public override bool OnBlockBrokenWith(IWorldAccessor world, Entity byEntity, ItemSlot itemslot, BlockSelection blockSel, float dropQuantityMultiplier = 1)
         {
             // Call default method
-            if (base.OnBlockBrokenWith(world, byEntity, itemslot, blockSel, dropQuantityMultiplier) == false)
+            if (!base.OnBlockBrokenWith(world, byEntity, itemslot, blockSel, 0))
+            {
                 return false;
+            }
 
             // Set block position
             BlockPos position = blockSel.Position;
@@ -87,7 +75,7 @@ namespace SuperTrains
         /// Try to place rails as curve type if possible, else nothing will happen.
         /// </summary>
         /// <returns>True if placed as curve.</returns>
-        private bool TryPlaceCurve(IWorldAccessor world, IPlayer byPlayer, BlockPos position, BlockFacing[] blockFacing)
+        private bool TryPlaceCurve(IWorldAccessor world, IPlayer byPlayer, BlockPos position)
         {
             // Set the curve type
             String targetCurve = setCurve(world, byPlayer, position);
@@ -95,8 +83,6 @@ namespace SuperTrains
             // If the set of the curve is invalid then returns false
             if (targetCurve == null)
             {
-                if (api == sAPI)
-                    sAPI.BroadcastMessageToAllGroups("Could not place curve, cause targetCurve is null", EnumChatType.AllGroups);
                 return false;
             }
 
@@ -110,13 +96,32 @@ namespace SuperTrains
                     // Update linked rails (set horizontal/vertical orientation)
                     return updateCloseRails(targetCurve, world, byPlayer, position);
                 }
-                else
-                                if (api == sAPI)
-                    sAPI.BroadcastMessageToAllGroups("!", EnumChatType.AllGroups);
             }
 
-            if (api == sAPI)
-                sAPI.BroadcastMessageToAllGroups("Could not place curve, cause curveToPlace is null", EnumChatType.AllGroups);
+            return false;
+        }
+
+        /// <summary>
+        /// Try to place rails as raised type if possible, else nothing will happen.
+        /// </summary>
+        /// <returns>True if placed as raised.</returns>
+        private bool TryToPlaceRaised(IWorldAccessor world, IPlayer byPlayer, BlockPos position)
+        {
+            // Set the raised type
+            String targetRaised = setRaised(world, position);
+
+            // If the set of the raise is invalid then returns false
+            if (targetRaised == null)
+            {
+                return false;
+            }
+
+            // Place the curve and returns true if everything is fine
+            Block raiseToPlace = world.GetBlock(base.CodeWithParts("raised_" + targetRaised));
+            if (raiseToPlace != null)
+            {
+                return this.placeIfSuitable(world, byPlayer, raiseToPlace, position);
+            }
 
             return false;
         }
@@ -291,6 +296,43 @@ namespace SuperTrains
             return targetCurve;
         }
 
+        /// <returns>The string that represents the raise (that can be 'e', 'n', 'w' or 's').
+        /// <br/> Null if not set correctly. Be sure that position represents right coordinates where to set the raise.
+        /// <br/> This method does not place any block in the world.
+        /// </returns>
+        private String setRaised(IWorldAccessor world, BlockPos position)
+        {
+            // Get close blocks
+            Block EBlock = Blocks.getBlockToEast(world, position);
+            Block NBlock = Blocks.getBlockToNorth(world, position);
+            Block WBlock = Blocks.getBlockToWest(world, position);
+            Block SBlock = Blocks.getBlockToSouth(world, position);
+
+            // Set flag on faces (E, N, W, S)
+            bool ERails = Rails.isBlockRailsBlock(EBlock);
+            bool NRails = Rails.isBlockRailsBlock(NBlock);
+            bool WRails = Rails.isBlockRailsBlock(WBlock);
+            bool SRails = Rails.isBlockRailsBlock(SBlock);
+
+            // Set required directions
+            bool EOrientation = Rails.getFlatRailsDirection(EBlock) == "we";
+            bool NOrientation = Rails.getFlatRailsDirection(NBlock) == "ns";
+            bool WOrientation = Rails.getFlatRailsDirection(WBlock) == "we";
+            bool SOrientation = Rails.getFlatRailsDirection(SBlock) == "ns";
+
+            // Set the target raised (that can be E, N, S or W)
+            if (ERails && !WRails && EOrientation && WBlock.SideSolid[BlockFacing.EAST.Index])
+                return "e";
+            if (NRails && !SRails && NOrientation && SBlock.SideSolid[BlockFacing.NORTH.Index])
+                return "n";
+            if (SRails && !NRails && SOrientation && NBlock.SideSolid[BlockFacing.SOUTH.Index])
+                return "s";
+            if (WRails && !ERails && WOrientation && EBlock.SideSolid[BlockFacing.WEST.Index])
+                return "w";
+
+            return null;
+        }
+
         /// <summary>
         /// Update close rails to a curve (if set to null then the close curves will be set to their original shape).
         /// </summary>
@@ -299,33 +341,22 @@ namespace SuperTrains
         {
             if (targetCurve == null)
             {
-                if (Rails.isThereRailBlockToEast(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToEast(world, position), api))
+                if (Rails.isThereRailBlockToEast(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToEast(world, position)))
                 {
-                    if (api == sAPI)
-                        sAPI.BroadcastMessageToAllGroups("Updated block to East and set to flat ns", EnumChatType.AllGroups);
                     world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.EAST)));
                 }
-                if (Rails.isThereRailBlockToNorth(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToNorth(world, position), api))
+                if (Rails.isThereRailBlockToNorth(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToNorth(world, position)))
                 {
-                    if (api == sAPI)
-                        sAPI.BroadcastMessageToAllGroups("Updated block to North and set to flat we", EnumChatType.AllGroups);
                     world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.NORTH)));
                 }
-                if (Rails.isThereRailBlockToWest(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToWest(world, position), api))
+                if (Rails.isThereRailBlockToWest(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToWest(world, position)))
                 {
-                    if (api == sAPI)
-                        sAPI.BroadcastMessageToAllGroups("Updated block to West and set to flat ns", EnumChatType.AllGroups);
                     world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.WEST)));
                 }
-                if (Rails.isThereRailBlockToSouth(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToSouth(world, position), api))
+                if (Rails.isThereRailBlockToSouth(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToSouth(world, position)))
                 {
-                    if (api == sAPI)
-                        sAPI.BroadcastMessageToAllGroups("Updated block to South and set to flat we", EnumChatType.AllGroups);
                     world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.SOUTH)));
                 }
-
-                if (api == sAPI)
-                    sAPI.BroadcastMessageToAllGroups("Updated correctly with target curve null (destroyed block kinda)", EnumChatType.AllGroups);
 
                 return true;
             }
@@ -334,8 +365,6 @@ namespace SuperTrains
             BlockFacing[] orientation = Blocks.StringToDirection(targetCurve);
             if (orientation == null || (!Directions.isValidObliqueDirection(orientation)))
             {
-                if (api == sAPI)
-                    sAPI.BroadcastMessageToAllGroups("Returns false cause orientation is not valid to place this curve!", EnumChatType.AllGroups);
                 return false;
             }
 
@@ -367,10 +396,6 @@ namespace SuperTrains
                     world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     break;
             }
-
-
-            if (api == sAPI)
-                sAPI.BroadcastMessageToAllGroups("Updated correctly with target curve (placed block kinda)", EnumChatType.AllGroups);
 
             return true;
         }
