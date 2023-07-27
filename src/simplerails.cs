@@ -339,23 +339,77 @@ namespace SuperTrains
         /// <returns>True if correctly updated close rails.</returns>
         private bool updateCloseRails(string targetCurve, IWorldAccessor world, IPlayer placer, BlockPos position)
         {
+            IBlockAccessor wba = world.BlockAccessor;
+
             if (targetCurve == null)
             {
-                if (Rails.isThereRailBlockToEast(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToEast(world, position)))
+                // East
+                if (Rails.isThereRailBlockToEast(world, position))
                 {
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.EAST)));
+                    Block EBlock = Blocks.getBlockToEast(world, position);
+                    // There is a curved rail block
+                    if (Rails.isCurvedRailBlock(EBlock))
+                        wba.ExchangeBlock(
+                            wba.GetBlock(base.CodeWithParts("flat_ns")).Id,
+                            position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.EAST))
+                            );
+                    // There is a raised rail block
+                    else if (Rails.isRaisedRailBlock(EBlock))
+                        wba.ExchangeBlock(
+                            wba.GetBlock(base.CodeWithParts("flat_we")).Id,
+                            position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.EAST))
+                            );
                 }
-                if (Rails.isThereRailBlockToNorth(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToNorth(world, position)))
+                // North
+                if (Rails.isThereRailBlockToNorth(world, position))
                 {
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.NORTH)));
+                    Block NBlock = Blocks.getBlockToNorth(world, position);
+                    // There is a curved rail block
+                    if (Rails.isCurvedRailBlock(NBlock))
+                        wba.ExchangeBlock(
+                            wba.GetBlock(base.CodeWithParts("flat_we")).Id,
+                            position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.NORTH))
+                            );
+                    // There is a raised rail block
+                    else if (Rails.isRaisedRailBlock(NBlock))
+                        wba.ExchangeBlock(
+                                wba.GetBlock(base.CodeWithParts("flat_ns")).Id,
+                            position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.NORTH))
+                            );
                 }
-                if (Rails.isThereRailBlockToWest(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToWest(world, position)))
+                // West
+                if (Rails.isThereRailBlockToWest(world, position))
                 {
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.WEST)));
+                    Block WBlock = Blocks.getBlockToWest(world, position);
+                    // There is a curved rail block
+                    if (Rails.isCurvedRailBlock(WBlock))
+                        wba.ExchangeBlock(
+                            wba.GetBlock(base.CodeWithParts("flat_ns")).Id,
+                            position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.WEST))
+                            );
+                    // There is a raised rail block
+                    else if (Rails.isRaisedRailBlock(WBlock))
+                        wba.ExchangeBlock(
+                            wba.GetBlock(base.CodeWithParts("flat_we")).Id,
+                            position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.WEST))
+                            );
                 }
-                if (Rails.isThereRailBlockToSouth(world, position) && Rails.isCurveRailBlock(Blocks.getBlockToSouth(world, position)))
+                // South
+                if (Rails.isThereRailBlockToSouth(world, position))
                 {
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.SOUTH)));
+                    Block SBlock = Blocks.getBlockToSouth(world, position);
+                    // There is a curved rail block
+                    if (Rails.isCurvedRailBlock(SBlock))
+                        wba.ExchangeBlock(
+                            wba.GetBlock(base.CodeWithParts("flat_we")).Id,
+                            position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.SOUTH))
+                            );
+                    // There is a raised rail block
+                    else if (Rails.isRaisedRailBlock(SBlock))
+                        wba.ExchangeBlock(
+                            wba.GetBlock(base.CodeWithParts("flat_ns")).Id,
+                            position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.SOUTH))
+                            );
                 }
 
                 return true;
@@ -372,29 +426,81 @@ namespace SuperTrains
             switch (targetCurve)
             {
                 case "ne":
+
+                    Block NEBlock = Blocks.getBlockToNE(world, position);
+
                     orientation[0] = BlockFacing.NORTH;
                     orientation[1] = BlockFacing.EAST;
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+
+                    if (Rails.isThereRailBlockToNE(world, position) && Rails.isCurvedRailBlock(NEBlock) && Rails.getCurvedRailBlockDirection(NEBlock) == "sw")
+                    {
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_se")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_nw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    }
+                    else
+                    {
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    }
                     break;
+
                 case "nw":
+
+                    Block NWBlock = Blocks.getBlockToNW(world, position);
+
                     orientation[0] = BlockFacing.NORTH;
                     orientation[1] = BlockFacing.WEST;
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+
+                    if (Rails.isThereRailBlockToNW(world, position) && Rails.isCurvedRailBlock(NWBlock) && Rails.getCurvedRailBlockDirection(NWBlock) == "se")
+                    {
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_ne")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_sw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    }
+                    else
+                    {
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    }
                     break;
+
                 case "sw":
+
+                    Block SWBlock = Blocks.getBlockToSW(world, position);
+
                     orientation[0] = BlockFacing.SOUTH;
                     orientation[1] = BlockFacing.WEST;
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+
+                    if (Rails.isThereRailBlockToSW(world, position) && Rails.isCurvedRailBlock(SWBlock) && Rails.getCurvedRailBlockDirection(SWBlock) == "ne")
+                    {
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_se")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_nw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    }
+                    else
+                    {
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    }
                     break;
+
                 case "se":
+
+                    Block SEBlock = Blocks.getBlockToSE(world, position);
+
                     orientation[0] = BlockFacing.SOUTH;
                     orientation[1] = BlockFacing.EAST;
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                    world.BlockAccessor.ExchangeBlock(world.BlockAccessor.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+
+                    if (Rails.isThereRailBlockToSE(world, position) && Rails.isCurvedRailBlock(SEBlock) && Rails.getCurvedRailBlockDirection(SEBlock) == "nw")
+                    {
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_se")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_nw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    }
+                    else
+                    {
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                    }
                     break;
+
             }
 
             return true;

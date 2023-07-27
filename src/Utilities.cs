@@ -11,20 +11,58 @@ namespace SuperTrains.Utilities
     {
         #region About faces
 
-        /// <summary>
-        /// Passing the face of a block will return 
-        /// </summary>
         /// <returns>Block where is facing to (It is never null).</returns>
         public static Block getNeighborBlockAtFace(IWorldAccessor world, BlockPos position, BlockFacing atFace)
-        { 
-            return world.BlockAccessor.GetBlock(position.AddCopy(atFace)); 
+        {
+            return world.BlockAccessor.GetBlock(position.AddCopy(atFace));
         }
 
-        /// <returns>Blocks at South and West faces of a block where is to the given position.</returns>
-        public static Block[] getBlocksOnSW(IWorldAccessor world, BlockPos position)
+        /// <returns>A block that is to North-East of the given position.</returns>
+        public static Block getBlockToNE(IWorldAccessor world, BlockPos position)
         {
-            Block[] blocks = { getNeighborBlockAtFace(world, position, BlockFacing.SOUTH), getNeighborBlockAtFace(world, position, BlockFacing.WEST) };
-            return blocks;
+            return world.BlockAccessor.GetBlock(
+                position + new BlockPos(
+                    Blocks.DirectionToCoordinates(
+                        new BlockFacing[] { BlockFacing.NORTH, BlockFacing.EAST }
+                        )
+                    )
+                );
+        }
+
+        /// <returns>A block that is to North-West of the given position.</returns>
+        public static Block getBlockToNW(IWorldAccessor world, BlockPos position)
+        {
+            return world.BlockAccessor.GetBlock(
+                position + new BlockPos(
+                    Blocks.DirectionToCoordinates(
+                        new BlockFacing[] { BlockFacing.NORTH, BlockFacing.WEST }
+                        )
+                    )
+                );
+        }
+
+        /// <returns>A block that is to South-West of the given position.</returns>
+        public static Block getBlockToSW(IWorldAccessor world, BlockPos position)
+        {
+            return world.BlockAccessor.GetBlock(
+                position + new BlockPos(
+                    Blocks.DirectionToCoordinates(
+                        new BlockFacing[] { BlockFacing.SOUTH, BlockFacing.WEST }
+                        )
+                    )
+                );
+        }
+
+        /// <returns>A block that is to South-East of the given position.</returns>
+        public static Block getBlockToSE(IWorldAccessor world, BlockPos position)
+        {
+            return world.BlockAccessor.GetBlock(
+                position + new BlockPos(
+                    Blocks.DirectionToCoordinates(
+                        new BlockFacing[] { BlockFacing.SOUTH, BlockFacing.EAST }
+                        )
+                    )
+                );
         }
 
         /// <returns>Blocks at North and East faces of a block where is to the given position.</returns>
@@ -38,6 +76,13 @@ namespace SuperTrains.Utilities
         public static Block[] getBlocksOnNW(IWorldAccessor world, BlockPos position)
         {
             Block[] blocks = { getNeighborBlockAtFace(world, position, BlockFacing.NORTH), getNeighborBlockAtFace(world, position, BlockFacing.WEST) };
+            return blocks;
+        }
+
+        /// <returns>Blocks at South and West faces of a block where is to the given position.</returns>
+        public static Block[] getBlocksOnSW(IWorldAccessor world, BlockPos position)
+        {
+            Block[] blocks = { getNeighborBlockAtFace(world, position, BlockFacing.SOUTH), getNeighborBlockAtFace(world, position, BlockFacing.WEST) };
             return blocks;
         }
 
@@ -454,6 +499,30 @@ namespace SuperTrains.Utilities
             return Blocks.getBlockToSouth(world, position) is SimpleRailsBlock;
         }
 
+        /// <returns>True if there is a simple rails block at North-East of the given position.</returns>
+        public static bool isThereRailBlockToNE(IWorldAccessor world, BlockPos position)
+        {
+            return Blocks.getBlockToNE(world, position) is SimpleRailsBlock;
+        }
+
+        /// <returns>True if there is a simple rails block at North-West of the given position.</returns>
+        public static bool isThereRailBlockToNW(IWorldAccessor world, BlockPos position)
+        {
+            return Blocks.getBlockToNW(world, position) is SimpleRailsBlock;
+        }
+
+        /// <returns>True if there is a simple rails block at South-West of the given position.</returns>
+        public static bool isThereRailBlockToSW(IWorldAccessor world, BlockPos position)
+        {
+            return Blocks.getBlockToSW(world, position) is SimpleRailsBlock;
+        }
+
+        /// <returns>True if there is a simple rails block at South-East of the given position.</returns>
+        public static bool isThereRailBlockToSE(IWorldAccessor world, BlockPos position)
+        {
+            return Blocks.getBlockToSE(world, position) is SimpleRailsBlock;
+        }
+
         #endregion
         #region About generics
 
@@ -513,7 +582,7 @@ namespace SuperTrains.Utilities
         }
 
         /// <returns>True if the rail block is curved, else false.</returns>
-        public static bool isCurveRailBlock(Block block)
+        public static bool isCurvedRailBlock(Block block)
         {
             // First check that provided block is a simple rails block
             if (!(block is SimpleRailsBlock))
@@ -533,7 +602,63 @@ namespace SuperTrains.Utilities
             }
 
             return false;
-            
+
+        }
+
+        /// <returns>
+        /// A string that indicates the direction ('ne', 'nw', 'sw' or 'se') if the block is a curved rails block. 
+        /// <br/>Could return null if there are problems.
+        /// </returns>
+        public static String getCurvedRailBlockDirection(Block block)
+        {
+            // First check that provided block is a simple rails block
+            if (!(block is SimpleRailsBlock) || !isCurvedRailBlock(block))
+                return null;
+
+            // Then check that the code of the block is actually that of a curved rail block
+            switch (block.Code.ToString().Split('-')[1])
+            {
+                case "curved_ne":
+                    return "ne";
+                case "curved_nw":
+                    return "nw";
+                case "curved_sw":
+                    return "sw";
+                case "curved_se":
+                    return "se";
+            }
+
+            return null;
+        }
+
+        /// <returns>True if the rail block is raised, else false.</returns>
+        public static bool isRaisedRailBlock(Block block)
+        {
+            // First check that provided block is a simple rails block
+            if (!(block is SimpleRailsBlock))
+                return false;
+
+            // Then check that the code of the block is actually that of a raised rail block
+            switch (block.Code.ToString().Split('-')[1])
+            {
+                case "raised_e":
+                    return true;
+                case "raised_n":
+                    return true;
+                case "raised_w":
+                    return true;
+                case "raised_s":
+                    return true;
+            }
+
+            return false;
+
+        }
+
+        /// <returns>True if the rail block is curved or raised, else false.</returns>
+        public static bool isCurvedOrRaisedBlock(Block block)
+        {
+            return isCurvedRailBlock(block) || isRaisedRailBlock(block);
         }
 
         #endregion
