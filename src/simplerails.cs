@@ -48,7 +48,7 @@ namespace SuperTrains
             }
 
             // Place the block as flat with got values
-            world.GetBlock(base.CodeWithParts(targetFacing.Axis == EnumAxis.Z ? "flat_ns" : "flat_we"))
+            world.GetBlock(CodeWithPath(FirstCodePart() + (targetFacing.Axis == EnumAxis.Z ? "-flat_ns" : "-flat_we")))
                 .DoPlaceBlock(world, byPlayer, blockSel, itemstack);
             return true;
         }
@@ -68,7 +68,7 @@ namespace SuperTrains
             IPlayer player = world.PlayerByUid((byEntity as EntityPlayer).PlayerUID);
 
             // Update linked rails (set horizontal/vertical orientation)
-            return updateCloseRails(null, world, player, position);
+            return updateCloseRails(null, world, position);
         }
 
         /// <summary>
@@ -87,14 +87,14 @@ namespace SuperTrains
             }
 
             // Place the curve and returns true if everything is fine
-            Block curveToPlace = world.GetBlock(base.CodeWithParts("curved_" + targetCurve));
+            Block curveToPlace = world.GetBlock(CodeWithPath(FirstCodePart() + "-curved_" + targetCurve));
             if (curveToPlace != null)
             {
                 // If placed correctly the curve
                 if (this.placeIfSuitable(world, byPlayer, curveToPlace, position))
                 {
                     // Update linked rails (set horizontal/vertical orientation)
-                    return updateCloseRails(targetCurve, world, byPlayer, position);
+                    return updateCloseRails(targetCurve, world, position);
                 }
             }
 
@@ -117,7 +117,7 @@ namespace SuperTrains
             }
 
             // Place the curve and returns true if everything is fine
-            Block raiseToPlace = world.GetBlock(base.CodeWithParts("raised_" + targetRaised));
+            Block raiseToPlace = world.GetBlock(CodeWithPath(FirstCodePart() + "-raised_" + targetRaised));
             if (raiseToPlace != null)
             {
                 return this.placeIfSuitable(world, byPlayer, raiseToPlace, position);
@@ -337,77 +337,78 @@ namespace SuperTrains
         /// Update close rails to a curve (if set to null then the close curves will be set to their original shape).
         /// </summary>
         /// <returns>True if correctly updated close rails.</returns>
-        private bool updateCloseRails(string targetCurve, IWorldAccessor world, IPlayer placer, BlockPos position)
+        private bool updateCloseRails(string targetCurve, IWorldAccessor world, BlockPos position)
         {
             IBlockAccessor wba = world.BlockAccessor;
+
+            Block NBlock = Blocks.getBlockToNorth(world, position);
+            Block EBlock = Blocks.getBlockToEast(world, position);
+            Block WBlock = Blocks.getBlockToWest(world, position);
+            Block SBlock = Blocks.getBlockToSouth(world, position);
 
             if (targetCurve == null)
             {
                 // East
                 if (Rails.isThereRailBlockToEast(world, position))
                 {
-                    Block EBlock = Blocks.getBlockToEast(world, position);
                     // There is a curved rail block
                     if (Rails.isCurvedRailBlock(EBlock))
                         wba.ExchangeBlock(
-                            wba.GetBlock(base.CodeWithParts("flat_ns")).Id,
+                            wba.GetBlock(EBlock.CodeWithPath(EBlock.FirstCodePart() + "-flat_ns")).Id,
                             position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.EAST))
                             );
                     // There is a raised rail block
                     else if (Rails.isRaisedRailBlock(EBlock))
                         wba.ExchangeBlock(
-                            wba.GetBlock(base.CodeWithParts("flat_we")).Id,
+                            wba.GetBlock(EBlock.CodeWithPath(EBlock.FirstCodePart() + "-flat_we")).Id,
                             position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.EAST))
                             );
                 }
                 // North
                 if (Rails.isThereRailBlockToNorth(world, position))
                 {
-                    Block NBlock = Blocks.getBlockToNorth(world, position);
                     // There is a curved rail block
                     if (Rails.isCurvedRailBlock(NBlock))
                         wba.ExchangeBlock(
-                            wba.GetBlock(base.CodeWithParts("flat_we")).Id,
+                            wba.GetBlock(NBlock.CodeWithPath(NBlock.FirstCodePart() + "-flat_we")).Id,
                             position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.NORTH))
                             );
                     // There is a raised rail block
                     else if (Rails.isRaisedRailBlock(NBlock))
                         wba.ExchangeBlock(
-                                wba.GetBlock(base.CodeWithParts("flat_ns")).Id,
+                                wba.GetBlock(NBlock.CodeWithPath(NBlock.FirstCodePart() + "-flat_ns")).Id,
                             position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.NORTH))
                             );
                 }
                 // West
                 if (Rails.isThereRailBlockToWest(world, position))
                 {
-                    Block WBlock = Blocks.getBlockToWest(world, position);
                     // There is a curved rail block
                     if (Rails.isCurvedRailBlock(WBlock))
                         wba.ExchangeBlock(
-                            wba.GetBlock(base.CodeWithParts("flat_ns")).Id,
+                            wba.GetBlock(WBlock.CodeWithPath(WBlock.FirstCodePart() + "-flat_ns")).Id,
                             position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.WEST))
                             );
                     // There is a raised rail block
                     else if (Rails.isRaisedRailBlock(WBlock))
                         wba.ExchangeBlock(
-                            wba.GetBlock(base.CodeWithParts("flat_we")).Id,
+                            wba.GetBlock(WBlock.CodeWithPath(WBlock.FirstCodePart() + "-flat_we")).Id,
                             position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.WEST))
                             );
                 }
                 // South
                 if (Rails.isThereRailBlockToSouth(world, position))
                 {
-                    Block SBlock = Blocks.getBlockToSouth(world, position);
                     // There is a curved rail block
                     if (Rails.isCurvedRailBlock(SBlock))
                         wba.ExchangeBlock(
-                            wba.GetBlock(base.CodeWithParts("flat_we")).Id,
+                            wba.GetBlock(SBlock.CodeWithPath(SBlock.FirstCodePart() + "-flat_we")).Id,
                             position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.SOUTH))
                             );
                     // There is a raised rail block
                     else if (Rails.isRaisedRailBlock(SBlock))
                         wba.ExchangeBlock(
-                            wba.GetBlock(base.CodeWithParts("flat_ns")).Id,
+                            wba.GetBlock(SBlock.CodeWithPath(SBlock.FirstCodePart() + "-flat_ns")).Id,
                             position + new BlockPos(Blocks.FaceToCoordinates(BlockFacing.SOUTH))
                             );
                 }
@@ -422,25 +423,27 @@ namespace SuperTrains
                 return false;
             }
 
+            // TODO: => CHECK HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
             // Update linked rails (set horizontal/vertical orientation)
             switch (targetCurve)
             {
                 case "ne":
 
                     Block NEBlock = Blocks.getBlockToNE(world, position);
-
+                    
                     orientation[0] = BlockFacing.NORTH;
                     orientation[1] = BlockFacing.EAST;
 
                     if (Rails.isThereRailBlockToNE(world, position) && Rails.isCurvedRailBlock(NEBlock) && Rails.getCurvedRailBlockDirection(NEBlock) == "sw")
                     {
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_se")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_nw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                        wba.ExchangeBlock(wba.GetBlock(NBlock.CodeWithPath(NBlock.FirstCodePart() + "-curved_se")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(EBlock.CodeWithPath(EBlock.FirstCodePart() + "-curved_nw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     }
                     else
                     {
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                        wba.ExchangeBlock(wba.GetBlock(NBlock.CodeWithPath(NBlock.FirstCodePart() + "-flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(EBlock.CodeWithPath(EBlock.FirstCodePart() + "-flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     }
                     break;
 
@@ -453,13 +456,13 @@ namespace SuperTrains
 
                     if (Rails.isThereRailBlockToNW(world, position) && Rails.isCurvedRailBlock(NWBlock) && Rails.getCurvedRailBlockDirection(NWBlock) == "se")
                     {
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_ne")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_sw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                        wba.ExchangeBlock(wba.GetBlock(NBlock.CodeWithPath(NBlock.FirstCodePart() + "-curved_sw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(WBlock.CodeWithPath(WBlock.FirstCodePart() + "-curved_ne")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     }
                     else
                     {
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                        wba.ExchangeBlock(wba.GetBlock(NBlock.CodeWithPath(NBlock.FirstCodePart() + "-flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(WBlock.CodeWithPath(WBlock.FirstCodePart() + "-flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     }
                     break;
 
@@ -472,13 +475,13 @@ namespace SuperTrains
 
                     if (Rails.isThereRailBlockToSW(world, position) && Rails.isCurvedRailBlock(SWBlock) && Rails.getCurvedRailBlockDirection(SWBlock) == "ne")
                     {
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_se")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_nw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                        wba.ExchangeBlock(wba.GetBlock(SBlock.CodeWithPath(SBlock.FirstCodePart() + "-curved_nw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(WBlock.CodeWithPath(WBlock.FirstCodePart() + "-curved_se")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     }
                     else
                     {
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                        wba.ExchangeBlock(wba.GetBlock(SBlock.CodeWithPath(SBlock.FirstCodePart() + "-flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(WBlock.CodeWithPath(WBlock.FirstCodePart() + "-flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     }
                     break;
 
@@ -491,13 +494,13 @@ namespace SuperTrains
 
                     if (Rails.isThereRailBlockToSE(world, position) && Rails.isCurvedRailBlock(SEBlock) && Rails.getCurvedRailBlockDirection(SEBlock) == "nw")
                     {
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_se")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("curved_nw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                        wba.ExchangeBlock(wba.GetBlock(SBlock.CodeWithPath(SBlock.FirstCodePart() + "-curved_ne")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(EBlock.CodeWithPath(EBlock.FirstCodePart() + "-curved_sw")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     }
                     else
                     {
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
-                        wba.ExchangeBlock(wba.GetBlock(base.CodeWithParts("flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
+                        wba.ExchangeBlock(wba.GetBlock(SBlock.CodeWithPath(SBlock.FirstCodePart() + "-flat_ns")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[0])));
+                        wba.ExchangeBlock(wba.GetBlock(EBlock.CodeWithPath(EBlock.FirstCodePart() + "-flat_we")).Id, position + new BlockPos(Blocks.FaceToCoordinates(orientation[1])));
                     }
                     break;
 
@@ -505,5 +508,15 @@ namespace SuperTrains
 
             return true;
         }
+
+        /// <summary>
+        /// Get material of the rails (example: "wooden", "iron", "golden")
+        /// </summary>
+        /// <returns>Null if invalid, else a string that represents the material.</returns>
+        private String getMaterial()
+        {
+            return FirstCodePart().Split('_')[0];
+        }
+
     }
 }

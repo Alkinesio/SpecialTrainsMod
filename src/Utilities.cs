@@ -7,6 +7,15 @@ using Vintagestory.ServerMods.NoObf;
 
 namespace SuperTrains.Utilities
 {
+
+    public static class Debugging
+    {
+        public static void Message(string content)
+        {
+            Debug.WriteLine(content);
+        }
+    }
+
     public static class Blocks
     {
         #region About faces
@@ -546,7 +555,7 @@ namespace SuperTrains.Utilities
                 return false;
 
             // Then check that the code of the block is actually that of a flat rail block
-            switch (block.Code.ToString().Split('-')[1])
+            switch (block.LastCodePart())
             {
                 case "flat_ns":
                     return true;
@@ -569,7 +578,7 @@ namespace SuperTrains.Utilities
                 return null;
 
             // Then check that the code of the block is actually that of a flat rail block
-            switch (block.Code.ToString().Split('-')[1])
+            switch (block.LastCodePart())
             {
                 case "flat_ns":
                     return "ns";
@@ -589,7 +598,7 @@ namespace SuperTrains.Utilities
                 return false;
 
             // Then check that the code of the block is actually that of a curved rail block
-            switch (block.Code.ToString().Split('-')[1])
+            switch (block.LastCodePart())
             {
                 case "curved_ne":
                     return true;
@@ -616,7 +625,7 @@ namespace SuperTrains.Utilities
                 return null;
 
             // Then check that the code of the block is actually that of a curved rail block
-            switch (block.Code.ToString().Split('-')[1])
+            switch (block.LastCodePart())
             {
                 case "curved_ne":
                     return "ne";
@@ -639,7 +648,7 @@ namespace SuperTrains.Utilities
                 return false;
 
             // Then check that the code of the block is actually that of a raised rail block
-            switch (block.Code.ToString().Split('-')[1])
+            switch (block.LastCodePart())
             {
                 case "raised_e":
                     return true;
@@ -663,4 +672,5 @@ namespace SuperTrains.Utilities
 
         #endregion
     }
+
 }
