@@ -64,6 +64,12 @@ namespace SuperTrains
                 return false;
             }
 
+            // Cannot place rails to y <= 0
+            if (blockSel.Position.Y <= 0)
+            {
+                return false;
+            }
+
             // Set orientation (flip if horizontal/vertical)
             BlockFacing targetFacing = Block.SuggestedHVOrientation(byPlayer, blockSel)[0];
 
