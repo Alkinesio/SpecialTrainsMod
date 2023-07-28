@@ -145,6 +145,54 @@ namespace SuperTrains.Utilities
             return getNeighborBlockAtFace(world, position, BlockFacing.DOWN);
         }
 
+        /// <returns>Block at Up-East face of a block where is to the given position.</returns>
+        public static Block getBlockToUE(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position + new BlockPos(FaceToCoordinates(BlockFacing.UP)), BlockFacing.EAST);
+        }
+
+        /// <returns>Block at Up-North face of a block where is to the given position.</returns>
+        public static Block getBlockToUN(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position + new BlockPos(FaceToCoordinates(BlockFacing.UP)), BlockFacing.NORTH);
+        }
+
+        /// <returns>Block at Up-West face of a block where is to the given position.</returns>
+        public static Block getBlockToUW(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position + new BlockPos(FaceToCoordinates(BlockFacing.UP)), BlockFacing.WEST);
+        }
+
+        /// <returns>Block at Up-South face of a block where is to the given position.</returns>
+        public static Block getBlockToUS(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position + new BlockPos(FaceToCoordinates(BlockFacing.UP)), BlockFacing.SOUTH);
+        }
+
+        /// <returns>Block at Down-East face of a block where is to the given position.</returns>
+        public static Block getBlockToDE(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position + new BlockPos(FaceToCoordinates(BlockFacing.DOWN)), BlockFacing.EAST);
+        }
+
+        /// <returns>Block at Down-North face of a block where is to the given position.</returns>
+        public static Block getBlockToDN(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position + new BlockPos(FaceToCoordinates(BlockFacing.DOWN)), BlockFacing.NORTH);
+        }
+
+        /// <returns>Block at Down-West face of a block where is to the given position.</returns>
+        public static Block getBlockToDW(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position + new BlockPos(FaceToCoordinates(BlockFacing.DOWN)), BlockFacing.WEST);
+        }
+
+        /// <returns>Block at Down-South face of a block where is to the given position.</returns>
+        public static Block getBlockToDS(IWorldAccessor world, BlockPos position)
+        {
+            return getNeighborBlockAtFace(world, position + new BlockPos(FaceToCoordinates(BlockFacing.DOWN)), BlockFacing.SOUTH);
+        }
+
         /// <summary>
         /// Get direction from an angle (expressed in radiant).
         /// </summary>
@@ -640,7 +688,7 @@ namespace SuperTrains.Utilities
             return null;
         }
 
-        /// <returns>True if the rail block is raised, else false.</returns>
+        /// <returns>True if the rail block is raised (or raised continuous), else false.</returns>
         public static bool isRaisedRailBlock(Block block)
         {
             // First check that provided block is a simple rails block
@@ -651,12 +699,16 @@ namespace SuperTrains.Utilities
             switch (block.LastCodePart())
             {
                 case "raised_e":
+                case "raised_continuous_e":
                     return true;
                 case "raised_n":
+                case "raised_continuous_n":
                     return true;
                 case "raised_w":
+                case "raised_continuous_w":
                     return true;
                 case "raised_s":
+                case "raised_continuous_s":
                     return true;
             }
 
@@ -668,6 +720,37 @@ namespace SuperTrains.Utilities
         public static bool isCurvedOrRaisedBlock(Block block)
         {
             return isCurvedRailBlock(block) || isRaisedRailBlock(block);
+        }
+
+        /// <returns>
+        /// A string that indicates the direction ('e', 'n', 'w' or 's') if the block is a raised rails block (or raised continuous). 
+        /// <br/>Could return null if there are problems.
+        /// </returns>
+        public static String getRaisedRailsDirection(Block block)
+        {
+            // First check that provided block is a simple rails block
+            if (!isRaisedRailBlock(block))
+                return null;
+
+            // Then check that the code of the block is actually that of a raised rail block
+            switch (block.LastCodePart())
+            {
+                case "raised_e":
+                case "raised_continuous_e":
+                    return "e";
+                case "raised_n":
+                case "raised_continuous_n":
+                    return "n";
+                case "raised_w":
+                case "raised_continuous_w":
+                    return "w";
+                case "raised_s":
+                case "raised_continuous_s":
+                    return "s";
+            }
+
+            return null;
+
         }
 
         #endregion

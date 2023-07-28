@@ -13,6 +13,38 @@ using Blocks = SuperTrains.Utilities.Blocks;
 
 namespace SuperTrains
 {
+    public class RaiseType
+    {
+        private String type;
+        private bool continuous;
+
+        public RaiseType(string type, bool continuous)
+        {
+            setType(type);
+            setContinuous(continuous);
+        }
+
+        public void setType(string type)
+        {
+            this.type = type;
+        }
+
+        public void setContinuous(bool continuous)
+        {
+            this.continuous = continuous;
+        }
+
+        public String getType()
+        {
+            return type;
+        }
+
+        public bool getContinuous()
+        {
+            return continuous;
+        }
+    }
+
     public class SimpleRailsBlock : Block
     {
 
@@ -108,16 +140,16 @@ namespace SuperTrains
         private bool TryToPlaceRaised(IWorldAccessor world, IPlayer byPlayer, BlockPos position)
         {
             // Set the raised type
-            String targetRaised = setRaised(world, position);
+            RaiseType target = setRaised(world, position);
 
             // If the set of the raise is invalid then returns false
-            if (targetRaised == null)
+            if (target.getType() == null)
             {
                 return false;
             }
 
             // Place the curve and returns true if everything is fine
-            Block raiseToPlace = world.GetBlock(CodeWithPath(FirstCodePart() + "-raised_" + targetRaised));
+            Block raiseToPlace = world.GetBlock(CodeWithPath(FirstCodePart() + "-raised_" + (target.getContinuous() ? "continuous_" : null) + target.getType()));
             if (raiseToPlace != null)
             {
                 return this.placeIfSuitable(world, byPlayer, raiseToPlace, position);
@@ -296,17 +328,28 @@ namespace SuperTrains
             return targetCurve;
         }
 
-        /// <returns>The string that represents the raise (that can be 'e', 'n', 'w' or 's').
-        /// <br/> Null if not set correctly. Be sure that position represents right coordinates where to set the raise.
+        /// <returns>A composite tuple (defined as RaiseType)
+        /// <br/> • A string that represents the raise (that can be 'e', 'n', 'w' or 's').
+        /// <br/> • A boolean that represents if the raise is continuous or not.
+        /// <br/>
+        /// <br/> Type null and boolean false if not set correctly. Be sure that position represents right coordinates where to set the raise.
         /// <br/> This method does not place any block in the world.
         /// </returns>
-        private String setRaised(IWorldAccessor world, BlockPos position)
+        private RaiseType setRaised(IWorldAccessor world, BlockPos position)
         {
             // Get close blocks
             Block EBlock = Blocks.getBlockToEast(world, position);
             Block NBlock = Blocks.getBlockToNorth(world, position);
             Block WBlock = Blocks.getBlockToWest(world, position);
             Block SBlock = Blocks.getBlockToSouth(world, position);
+            Block UEBlock = Blocks.getBlockToUE(world, position);
+            Block UNBlock = Blocks.getBlockToUN(world, position);
+            Block UWBlock = Blocks.getBlockToUW(world, position);
+            Block USBlock = Blocks.getBlockToUS(world, position);
+            Block DEBlock = Blocks.getBlockToDE(world, position);
+            Block DNBlock = Blocks.getBlockToDN(world, position);
+            Block DWBlock = Blocks.getBlockToDW(world, position);
+            Block DSBlock = Blocks.getBlockToDS(world, position);
 
             // Set flag on faces (E, N, W, S)
             bool ERails = Rails.isBlockRailsBlock(EBlock);
@@ -314,23 +357,55 @@ namespace SuperTrains
             bool WRails = Rails.isBlockRailsBlock(WBlock);
             bool SRails = Rails.isBlockRailsBlock(SBlock);
 
+            // Set flag on up faces (UE, UN, UW, US)
+            bool UERails = Rails.isBlockRailsBlock(UEBlock);
+            bool UNRails = Rails.isBlockRailsBlock(UNBlock);
+            bool UWRails = Rails.isBlockRailsBlock(UWBlock);
+            bool USRails = Rails.isBlockRailsBlock(USBlock);
+
+            // Set flag on down faces (DE, DN, DW, DS)
+            bool DERails = Rails.isBlockRailsBlock(DEBlock);
+            bool DNRails = Rails.isBlockRailsBlock(DNBlock);
+            bool DWRails = Rails.isBlockRailsBlock(DWBlock);
+            bool DSRails = Rails.isBlockRailsBlock(DSBlock);
+
             // Set required directions
-            bool EOrientation = Rails.getFlatRailsDirection(EBlock) == "we";
-            bool NOrientation = Rails.getFlatRailsDirection(NBlock) == "ns";
-            bool WOrientation = Rails.getFlatRailsDirection(WBlock) == "we";
-            bool SOrientation = Rails.getFlatRailsDirection(SBlock) == "ns";
+            bool EOrientation = Rails.getFlatRailsDirection(EBlock) == "we" || Rails.getRaisedRailsDirection(UEBlock) == "e" || Rails.getRaisedRailsDirection(DEBlock) == "e";
+            bool NOrientation = Rails.getFlatRailsDirection(NBlock) == "ns" || Rails.getRaisedRailsDirection(UNBlock) == "n" || Rails.getRaisedRailsDirection(DNBlock) == "n";
+            bool WOrientation = Rails.getFlatRailsDirection(WBlock) == "we" || Rails.getRaisedRailsDirection(UWBlock) == "w" || Rails.getRaisedRailsDirection(DWBlock) == "w";
+            bool SOrientation = Rails.getFlatRailsDirection(SBlock) == "ns" || Rails.getRaisedRailsDirection(USBlock) == "s" || Rails.getRaisedRailsDirection(DSBlock) == "s";
 
-            // Set the target raised (that can be E, N, S or W)
-            if (ERails && !WRails && EOrientation && WBlock.SideSolid[BlockFacing.EAST.Index])
-                return "e";
-            if (NRails && !SRails && NOrientation && SBlock.SideSolid[BlockFacing.NORTH.Index])
-                return "n";
-            if (SRails && !NRails && SOrientation && NBlock.SideSolid[BlockFacing.SOUTH.Index])
-                return "s";
-            if (WRails && !ERails && WOrientation && EBlock.SideSolid[BlockFacing.WEST.Index])
-                return "w";
+            // Set the target raised (that can be E, N, W or S)
+            if (EOrientation && WBlock.SideSolid[BlockFacing.EAST.Index])
+            {
+                if (ERails && !WRails)
+                    return new RaiseType("e", false);
+                if ((UWRails && !UERails) || (DERails && !DWRails))
+                    return new RaiseType("e", true);
+            }
+            if (NOrientation && SBlock.SideSolid[BlockFacing.NORTH.Index])
+            {
+                if (NRails && !SRails)
+                    return new RaiseType("n", false);
+                if ((USRails && !UNRails) || (DNRails && !DSRails))
+                    return new RaiseType("n", true);
+            }
+            if (WOrientation && EBlock.SideSolid[BlockFacing.WEST.Index])
+            {
+                if (WRails && !ERails)
+                    return new RaiseType("w", false);
+                if ((UERails && !UWRails) || (DWRails && !DERails))
+                    return new RaiseType("w", true);
+            }
+            if (SOrientation && NBlock.SideSolid[BlockFacing.SOUTH.Index])
+            {
+                if (SRails && !NRails)
+                    return new RaiseType("s", false);
+                if ((UNRails && !USRails) || (DSRails && !DNRails))
+                    return new RaiseType("s", true);
+            }
 
-            return null;
+            return new RaiseType(null, false);
         }
 
         /// <summary>
@@ -423,15 +498,13 @@ namespace SuperTrains
                 return false;
             }
 
-            // TODO: => CHECK HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
             // Update linked rails (set horizontal/vertical orientation)
             switch (targetCurve)
             {
                 case "ne":
 
                     Block NEBlock = Blocks.getBlockToNE(world, position);
-                    
+
                     orientation[0] = BlockFacing.NORTH;
                     orientation[1] = BlockFacing.EAST;
 
