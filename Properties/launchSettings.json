@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "supertrains": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\alkin\\AppData\\Roaming\\Vintagestory"
+    }
+  }
+}

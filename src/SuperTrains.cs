@@ -16,8 +16,9 @@ namespace SuperTrains
         {
             base.Start(api);
             api.RegisterBlockClass("simplerails", typeof(SimpleRailsBlock));
-            api.RegisterItemClass("handcarItem", typeof(HandcarItem));
+            api.RegisterBlockClass("handcarItem", typeof(HandcarItem));
             api.RegisterEntity("handcarEntity", typeof(HandcarEntity));
+            api.RegisterBlockClass("handcarBlock", typeof(Handcar));
         }
 
         public string GetModID() { return modId; }

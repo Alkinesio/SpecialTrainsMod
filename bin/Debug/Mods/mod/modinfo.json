@@ -1,0 +1,11 @@
+{
+  "authors": [ "Alkinesio", "Guartis" ],
+  "dependencies": {
+    "game": "1.18.10"
+  },
+  "description": "To be added",
+  "modid": "supertrains",
+  "name": "Supertrains",
+  "type": "code",
+  "version": "1.0.0"
+}

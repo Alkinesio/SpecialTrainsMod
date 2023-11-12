@@ -1,0 +1,19 @@
+{
+	"ingredient": { 
+		"type": "item", 
+		"code": "game:ingot-gold"
+	},
+	"pattern": [[
+		"___###___",
+		"___###___",
+		"___###___",
+		"___###___",
+		"___###___",
+		"___###___",
+		"___###___",
+		"___###___",
+		"___###___"
+	]],
+	name: "Board (Gold)",
+	output: { type: "item", code: "supertrains:golden_plank" }
+}

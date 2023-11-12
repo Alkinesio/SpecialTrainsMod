@@ -12,23 +12,19 @@ using Vintagestory.GameContent;
 
 namespace SuperTrains
 {
-    public abstract class SimpleTransport : Item
+    public abstract class SimpleTransport : Block
     {
         private SimpleRailsBlock requiredRails;
         private BlockPos requiredRailsPos;
-        private Entity transport;
-
-        /// <summary>
-        /// Could be changed by children because of variations
-        /// </summary>
         private AssetLocation assetLocation;
+        private Block transport;
 
         /// <summary>
         /// Check and spawn the transport on interact (you can <see cref="SetAssetLocation">set asset location</see> before to call this method to set different code for variants).
         /// </summary>
         public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handHandling)
         {
-            CheckAndSpawn(slot, byEntity, blockSel, ref handHandling);
+            CheckAndSet(slot, byEntity, blockSel, ref handHandling);
         }
 
         public void SetAssetLocation(AssetLocation assetLocation)
@@ -36,23 +32,28 @@ namespace SuperTrains
             this.assetLocation = assetLocation;
         }
 
-        public bool CheckAndSpawn(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, ref EnumHandHandling handHandling)
+        public bool CheckAndSet(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, ref EnumHandHandling handHandling)
         {
-            if (CanBeSpawned(slot, byEntity, blockSel))
+            // Check for settable transport block
+            if (!CanBeSet(slot, byEntity, blockSel))
             {
-                Spawn(byEntity.World, ref handHandling);
-                Debug.WriteLine("Should be placed!");
-                return true;
-            }
-            else
-            {
-                Debug.WriteLine("Not should be placed!");
+                return false;
             }
 
-            return false;
+            // Check for missing world or transport
+            if (byEntity.World == null || transport == null)
+            {
+                return false;
+            }
+
+            // Set block
+            byEntity.World.BlockAccessor.SetBlock(transport.BlockId, blockSel.Position);
+            handHandling = EnumHandHandling.PreventDefaultAction;
+
+            return true;
         }
 
-        public bool CanBeSpawned(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel)
+        public bool CanBeSet(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel)
         {
             if (!CheckForRails(byEntity, blockSel))
             {
@@ -80,24 +81,19 @@ namespace SuperTrains
                 slot.MarkDirty();
             }
 
-            EntityProperties entityType = byEntity.World.GetEntityType(assetLocation);
-            if (entityType == null)
+            Block transport = byEntity.World.GetBlock(assetLocation);
+            if (transport == null)
             {
-                byEntity.World.Logger.Error("ItemTransport: No such entity - {0}", assetLocation);
+                byEntity.World.Logger.Error("Transport: No such block - {0}", assetLocation);
                 if (api.World.Side == EnumAppSide.Client)
                 {
-                    (api as ICoreClientAPI).TriggerIngameError(this, "nosuchentity", "No such entity loaded - '" + assetLocation + "'.");
+                    (api as ICoreClientAPI).TriggerIngameError(this, "nosuchblock", "No such block loaded - '" + assetLocation + "'.");
                 }
 
                 return false;
             }
 
-            transport = byEntity.World.ClassRegistry.CreateEntity(entityType);
-            if (transport == null)
-            {
-                return false;
-            }
-
+            /*
             transport.ServerPos.X = (float)(blockSel.Position.X + ((!blockSel.DidOffset) ? blockSel.Face.Normali.X : 0)) + 0.5f;
             transport.ServerPos.Y = blockSel.Position.Y + ((!blockSel.DidOffset) ? blockSel.Face.Normali.Y : 0);
             transport.ServerPos.Z = (float)(blockSel.Position.Z + ((!blockSel.DidOffset) ? blockSel.Face.Normali.Z : 0)) + 0.5f;
@@ -114,20 +110,12 @@ namespace SuperTrains
                     transport.WatchedAttributes.SetString("guardedPlayerUid", ePlayer.PlayerUID);
                 }
             }
+            */
 
             return true;
         }
 
-        private void Spawn(IWorldAccessor world, ref EnumHandHandling handHandling)
-        {
-            if (world == null || transport == null)
-                return;
-
-            world.SpawnEntity(transport);
-            handHandling = EnumHandHandling.PreventDefaultAction;
-        }
-
-        public Entity GetTransport()
+        public Block GetTransport()
         {
             return transport;
         }
@@ -144,15 +132,11 @@ namespace SuperTrains
 
         private bool CheckForRails(EntityAgent byEntity, BlockSelection blockSel)
         {
-            Debug.WriteLine("Start!");
-
             // Get coordinates as block position
             BlockPos position = blockSel.Position;
 
             // Get world by entity
             IWorldAccessor world = byEntity.World;
-
-            Debug.WriteLine("POS : " + position);
 
             // Must place on simple rails
             if (!Rails.IsThereRailBlock(world, position))
@@ -160,13 +144,10 @@ namespace SuperTrains
                 return false;
             }
 
-            Debug.WriteLine("Yea, there is a rails downside!");
-
             // Set required rails parameters
             requiredRails = Rails.GetRailBlock(world, position);
             requiredRailsPos = position - new BlockPos(Blocks.FaceToCoordinates(BlockFacing.DOWN));
 
-            Debug.WriteLine("Conditions for simple transport correctly initialized!");
             return true;
         }
     }

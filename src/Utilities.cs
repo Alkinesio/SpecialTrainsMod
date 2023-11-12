@@ -436,6 +436,46 @@ namespace SuperTrains.Utilities
     public static class Directions
     {
 
+        /// <summary> Use <see cref="IsValidDirection(String direction)">IsValidDirection</see> for simple directions. </summary>
+        /// <returns> True if the direction (NS, WE) is correct (case insensitive). </returns>
+        public static bool IsValidBiDirection(String direction)
+        {
+            return
+                direction == "ns" || direction == "we" ||
+                direction == "Ns" || direction == "We" ||
+                direction == "nS" || direction == "wE" ||
+                direction == "NS" || direction == "WE";
+        }
+
+        /// <summary> Use <see cref="IsValidObliqueDirection(BlockFacing[])">IsValidObliqueDirection</see> for oblique directions. </summary>
+        /// <returns> True if the direction (E, N, W, S) is correct (case insensitive). </returns>
+        public static bool IsValidDirection(String direction)
+        {
+            return
+                direction == "e" || direction == "E" ||
+                direction == "n" || direction == "N" ||
+                direction == "w" || direction == "W" ||
+                direction == "s" || direction == "S";
+        }
+
+        /// <returns>True if the oblique direction (NE, NW, SW, SE) is correct given case insensitive string.</returns>
+        public static bool IsValidObliqueDirection(string direction)
+        {
+            if (direction.Length != 2)
+                return false;
+
+            if ((direction[0] == 'n' || direction[0] == 'N') && (direction[1] == 'e' || direction[1] == 'E'))
+                return true;
+            if ((direction[0] == 'n' || direction[0] == 'N') && (direction[1] == 'w' || direction[1] == 'W'))
+                return true;
+            if ((direction[0] == 's' || direction[0] == 'S') && (direction[1] == 'w' || direction[1] == 'W'))
+                return true;
+            if ((direction[0] == 's' || direction[0] == 'S') && (direction[1] == 'e' || direction[1] == 'E'))
+                return true;
+
+            return false;
+        }
+
         /// <returns>True if the oblique direction (NE, NW, SW, SE) is correct.</returns>
         public static bool IsValidObliqueDirection(BlockFacing[] direction)
         {
@@ -452,6 +492,191 @@ namespace SuperTrains.Utilities
                 return true;
 
             return false;
+        }
+
+        /// <summary> Set directions parameter based on desired output:
+        /// <br/> • 2: NE, SW
+        /// <br/> • 4: E, N, W, S
+        /// <br/> • 8: E, NE, N, NW, W, SW, S, SE
+        /// <br/> Other values will return null output.
+        /// </summary>
+        /// <returns> Next direction to the given one (lower case). Null in the case of problems. </returns>
+        public static String NextDirection(String direction, int directions, bool clockwise = false, bool onlyOblique = false)
+        {
+            // Get direction size
+            int size = direction.Length;
+
+            // Check for valid direction size
+            if (size < 0 || size > 2)
+            {
+                return null;
+            }
+
+            // Check for valid directions output format
+            if (directions != 2 && directions != 4 && directions != 8)
+            {
+                return null;
+            }
+
+            // Check for other invalid cases
+            if ((size == 1 && directions == 2) || (!onlyOblique && size == 2 && directions == 4))
+            {
+                return null;
+            }
+
+            // Check for directions
+            if (directions == 2)
+            {
+                // Check for valid direction
+                if (!IsValidBiDirection(direction))
+                {
+                    return null;
+                }
+
+                // Returning next direction
+                switch (direction)
+                {
+                    case "ns":
+                    case "Ns":
+                    case "nS":
+                    case "NS":
+                        return "we";
+                    case "we":
+                    case "We":
+                    case "wE":
+                    case "WE":
+                        return "ns";
+                    default:
+                        break;
+                }
+            }
+            else if (directions == 4)
+            {
+                // Check for valid direction
+                if (!onlyOblique)
+                {
+                    if (!IsValidDirection(direction))
+                    {
+                        return null;
+                    }
+                }
+                else
+                {
+                    if (!IsValidObliqueDirection(direction))
+                    {
+                        return null;
+                    }
+                }
+
+                // Returning next direction
+                if (!onlyOblique)
+                {
+                    switch (direction)
+                    {
+                        case "e":
+                        case "E":
+                            return !clockwise ? "n" : "s";
+                        case "n":
+                        case "N":
+                            return !clockwise ? "w" : "e";
+                        case "w":
+                        case "W":
+                            return !clockwise ? "s" : "n";
+                        case "s":
+                        case "S":
+                            return !clockwise ? "e" : "w";
+                        default:
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (direction)
+                    {
+                        case "ne":
+                        case "Ne":
+                        case "nE":
+                        case "NE":
+                            return !clockwise ? "nw" : "se";
+                        case "nw":
+                        case "Nw":
+                        case "nW":
+                        case "NW":
+                            return !clockwise ? "sw" : "ne";
+                        case "sw":
+                        case "Sw":
+                        case "sW":
+                        case "SW":
+                            return !clockwise ? "se" : "nw";
+                        case "se":
+                        case "Se":
+                        case "sE":
+                        case "SE":
+                            return !clockwise ? "ne" : "sw"; ;
+                        default:
+                            break;
+                    } // => End of onlyOblique statement
+                } // => End of returning direction
+            } // => End of 4-directions case
+            else if (directions == 8)
+            {
+                // Check for valid direction
+                if (!IsValidObliqueDirection(direction) && !IsValidDirection(direction))
+                {
+                    return null;
+                }
+
+                // Returning next direction
+                switch (direction)
+                {
+                    case "ne":
+                    case "Ne":
+                    case "nE":
+                    case "NE":
+                        return !clockwise ? "n" : "e";
+                    case "n":
+                    case "N":
+                        return !clockwise ? "nw" : "ne";
+                    case "nw":
+                    case "Nw":
+                    case "nW":
+                    case "NW":
+                        return !clockwise ? "w" : "n";
+                    case "w":
+                    case "W":
+                        return !clockwise ? "sw" : "nw";
+                    case "sw":
+                    case "Sw":
+                    case "sW":
+                    case "SW":
+                        return !clockwise ? "s" : "w";
+                    case "s":
+                    case "S":
+                        return !clockwise ? "se" : "sw";
+                    case "se":
+                    case "Se":
+                    case "sE":
+                    case "SE":
+                        return !clockwise ? "e" : "s"; ;
+                    default:
+                        break;
+                }
+            }
+
+            // Not found direction
+            return null;
+        }
+
+        /// <summary> Set directions parameter based on desired output:
+        /// <br/> • 2: NE, SW
+        /// <br/> • 4: E, N, W, S
+        /// <br/> • 8: E, NE, N, NW, W, SW, S, SE
+        /// <br/> Other values will return null output.
+        /// </summary>
+        /// <returns> Previous direction to the given one (lower case). Null in the case of problems. </returns>
+        public static String PreviousDirection(String direction, int directions, bool clockwise = false)
+        {
+            return NextDirection(direction, directions, !clockwise);
         }
 
     }

@@ -1,0 +1,12 @@
+{
+	"block-wooden_rails_1x1-*": "Wooden rails",
+	"block-iron_rails_1x1-*": "Iron rails",
+	"block-golden_rails_1x1-*": "Golden rails",
+	"block-handcar-*": "Handcar",
+	"block-train": "Train",
+	"item-iron_plank": "Board (Iron)",
+	"item-golden_plank": "Board (Gold)",
+	"item-copper_wrench": "Copper wrench",
+	"item-iron_wrench": "Iron wrench",
+	"item-golden_wrench": "Golden wrench"
+}

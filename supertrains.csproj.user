@@ -3,4 +3,11 @@
   <PropertyGroup>
     <ProjectView>ShowAllFiles</ProjectView>
   </PropertyGroup>
+  <PropertyGroup>
+    <ReferencePath>C:\Users\alkin\AppData\Roaming\Vintagestory\;C:\Users\alkin\AppData\Roaming\Vintagestory\Lib\;C:\Users\alkin\AppData\Roaming\Vintagestory\Mods\</ReferencePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <StartAction>Program</StartAction>
+    <StartProgram>C:\Users\alkin\AppData\Roaming\Vintagestory\Vintagestory.exe</StartProgram>
+  </PropertyGroup>
 </Project>

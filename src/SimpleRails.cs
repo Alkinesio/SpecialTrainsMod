@@ -5,13 +5,12 @@ using System;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
-using Vintagestory.API.Config;
-using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
-using Blocks = SuperTrains.Utilities.Blocks;
 
+using Blocks = SuperTrains.Utilities.Blocks;
+using Directions = SuperTrains.Utilities.Directions;
 
 namespace SuperTrains
 {
@@ -48,9 +47,8 @@ namespace SuperTrains
         }
     }
 
-    public class SimpleRailsBlock : Block
+    public class SimpleRailsBlock : Block, IWrenchOrientable
     {
-
         /// <summary>Try and place the block.</summary>
         /// <returns>True if the block is correctly placed.</returns>
         public override bool TryPlaceBlock(IWorldAccessor world, IPlayer byPlayer, ItemStack itemstack, BlockSelection blockSel, ref string failureCode)
@@ -91,6 +89,7 @@ namespace SuperTrains
             // Place the block as flat with got values
             world.GetBlock(CodeWithPath(FirstCodePart() + (targetFacing.Axis == EnumAxis.Z ? "-flat_ns" : "-flat_we")))
                 .DoPlaceBlock(world, byPlayer, blockSel, itemstack);
+
             return true;
         }
 
@@ -152,19 +151,73 @@ namespace SuperTrains
             RaiseType target = SetRaised(world, position);
 
             // If the set of the raise is invalid then returns false
-            if (target.GetType() == null)
+            if (target.GetDirection() == null)
             {
                 return false;
             }
 
             // Place the curve and returns true if everything is fine
-            Block raiseToPlace = world.GetBlock(CodeWithPath(FirstCodePart() + "-raised_" + (target.GetContinuous() ? "continuous_" : null) + target.GetType()));
+            Block raiseToPlace = world.GetBlock(CodeWithPath(FirstCodePart() + "-raised_" + (target.GetContinuous() ? "continuous_" : null) + target.GetDirection()));
             if (raiseToPlace != null)
             {
                 return this.PlaceIfSuitable(world, byPlayer, raiseToPlace, position);
             }
 
             return false;
+        }
+
+        /// <summary> Rotate flat rails on wrench interaction. </summary>
+        void IWrenchOrientable.Rotate(EntityAgent byEntity, BlockSelection blockSel, int dir)
+        {
+            // Get interacted block
+            Block block = blockSel.Block;
+
+            // Declare type rails block var
+            string railType;
+
+            // Declare direction rails var
+            string direction;
+
+            // Declare directions format
+            int directions = -1;
+
+            // Declare only oblique format
+            bool onlyOblique = false;
+
+            // Check for rails type
+            if (Utilities.Rails.IsFlatRailBlock(block))
+            {
+                railType = "flat";
+                direction = Utilities.Rails.GetFlatRailsDirection(block);
+                directions = 2;
+            }
+            else if (Utilities.Rails.IsCurvedRailBlock(block))
+            {
+                railType = "curved";
+                direction = Utilities.Rails.GetCurvedRailBlockDirection(block);
+                directions = 4;
+                onlyOblique = true;
+            }
+            else if (Utilities.Rails.IsRaisedRailBlock(block))
+            {
+                railType = "raised";
+                direction = Utilities.Rails.GetRaisedRailsDirection(block);
+                directions = 4;
+            }
+            else // Not recognized type!
+            {
+                return;
+            }
+
+            // Set exchanging direction
+            String exchangingDirection = Directions.NextDirection(direction, directions, dir > 0, onlyOblique);
+
+            // Get exchanging path
+            AssetLocation exchangingPart = block.CodeWithPart($"{railType}_{exchangingDirection}", 1);
+
+            // Invert direction
+            Block exchangingBlock = byEntity.World.BlockAccessor.GetBlock(exchangingPart);
+            byEntity.World.BlockAccessor.ExchangeBlock(exchangingBlock.BlockId, blockSel.Position);
         }
 
         private bool PlaceIfSuitable(IWorldAccessor world, IPlayer byPlayer, Block block, BlockPos pos)
@@ -590,6 +643,5 @@ namespace SuperTrains
 
             return true;
         }
-
     }
 }
