@@ -14,13 +14,17 @@ namespace SuperTrains
 
         public override void Start(ICoreAPI api)
         {
+            // Starts API
             base.Start(api);
+
+            // Rails registration
             api.RegisterBlockClass("simplerails", typeof(SimpleRailsBlock));
-            api.RegisterBlockClass("handcarItem", typeof(HandcarItem));
+            // Handcar registration
+            api.RegisterBlockClass("handcar", typeof(Handcar));
             api.RegisterEntity("handcarEntity", typeof(HandcarEntity));
-            api.RegisterBlockClass("handcarBlock", typeof(Handcar));
+            // TODO ...
         }
 
-        public string GetModID() { return modId; }
+        public string GetModID() => modId;
     }
 }

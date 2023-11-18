@@ -26,7 +26,7 @@
 		"*-curved_nw": { base: "block/rails/curved" },
 		"*-curved_sw": { base: "block/rails/curved", rotateY: 90 },
 		"*-curved_se": { base: "block/rails/curved", rotateY: 180 },
-		"*": { base: "block/rails/flat" },
+		"*": { base: "block/rails/flat" }
 	},
 	drops: [ { code: "wooden_rails_1x1-flat_ns" } ],
 	blockmaterial: "Wood",

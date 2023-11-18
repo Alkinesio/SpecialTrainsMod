@@ -1,6 +1,9 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 
 namespace SuperTrains.Utilities
@@ -428,6 +431,96 @@ namespace SuperTrains.Utilities
                 return new Vec3i(1, 0, 0);
 
             return Vec3i.Zero;
+        }
+
+        #endregion
+    }
+
+    public static class Entities
+    {
+        #region About generics
+
+        public static Entity Get(IWorldAccessor world, AssetLocation asset)
+        {
+            // Check valid asset location
+            if (!AssetLocations.Check(world, asset))
+            {
+                return null;
+            }
+
+            // Get type entity
+            EntityProperties type = world.GetEntityType(asset);
+
+            // Check for valid type entity
+            if (type == null)
+            {
+                return null;
+            }
+
+            return world.ClassRegistry.CreateEntity(type);
+        }
+
+        public static bool Spawn(IWorldAccessor world, BlockSelection blockSel, Entity entity)
+        {
+            // Check for missing blockSel or entity
+            if (blockSel == null || entity == null)
+            {
+                return false;
+            }
+
+            // Set entity properties
+            entity.ServerPos.X = (float)(blockSel.Position.X + ((!blockSel.DidOffset) ? blockSel.Face.Normali.X : 0)) + 0.5f;
+            entity.ServerPos.Y = blockSel.Position.Y + ((!blockSel.DidOffset) ? blockSel.Face.Normali.Y : 0);
+            entity.ServerPos.Z = (float)(blockSel.Position.Z + ((!blockSel.DidOffset) ? blockSel.Face.Normali.Z : 0)) + 0.5f;
+            entity.ServerPos.Yaw = (float)world.Rand.NextDouble() * 2f * (float)Math.PI;
+            entity.Pos.SetFrom(entity.ServerPos);
+            entity.PositionBeforeFalling.Set(entity.ServerPos.X, entity.ServerPos.Y, entity.ServerPos.Z);
+            entity.Attributes.SetString("origin", "playerplaced");
+
+            // Spawn entity
+            world.SpawnEntity(entity);
+
+            return true;
+
+        }
+
+        /// <returns>False if could not spawn entity from assets, otherwise true.</returns>
+        public static bool Spawn(IWorldAccessor world, BlockSelection blockSel, AssetLocation asset)
+        {
+            // Check for missing blockSel
+            if (blockSel == null)
+            {
+                return false;
+            }
+
+            // Get entity
+            Entity entity = Get(world, asset);
+
+            return Spawn(world, blockSel, entity);
+        }
+
+        #endregion
+    }
+
+    public static class AssetLocations
+    {
+        #region About validity
+
+        public static bool Check(IWorldAccessor world, AssetLocation asset)
+        {
+            // Check if world or asset are missing
+            if (world == null || asset == null)
+            {
+                return false;
+            }
+
+            // Find it among entities
+            if (!world.EntityTypes.Any(x => x.Code == asset))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         #endregion
@@ -911,7 +1004,7 @@ namespace SuperTrains.Utilities
         public static bool IsFlatRailBlock(Block block)
         {
             // First check that provided block is a simple rails block
-            if (!(block is SimpleRailsBlock))
+            if (block is not SimpleRailsBlock)
                 return false;
 
             // Then check that the code of the block is actually that of a flat rail block
@@ -924,7 +1017,25 @@ namespace SuperTrains.Utilities
             }
 
             return false;
+        }
 
+        /// <summary> Check that rail block has specified direction (must be "ns" or "we" format). </summary>
+        public static bool FlatRailBlockWith(Block block, string direction)
+        {
+            // Check that provided block is a simple rails block
+            if (block is not SimpleRailsBlock)
+            {
+                return false;
+            }
+
+            // Check that provided direction is valid
+            if (direction != "ns" && direction != "we")
+            {
+                return false;
+            }
+
+            // Then check that the code of the block is actually that of a flat rail block
+            return block.LastCodePart() == $"flat_{direction}";
         }
 
         /// <returns>
@@ -954,7 +1065,7 @@ namespace SuperTrains.Utilities
         public static bool IsCurvedRailBlock(Block block)
         {
             // First check that provided block is a simple rails block
-            if (!(block is SimpleRailsBlock))
+            if (block is not SimpleRailsBlock)
                 return false;
 
             // Then check that the code of the block is actually that of a curved rail block
@@ -981,7 +1092,7 @@ namespace SuperTrains.Utilities
         public static String GetCurvedRailBlockDirection(Block block)
         {
             // First check that provided block is a simple rails block
-            if (!(block is SimpleRailsBlock) || !IsCurvedRailBlock(block))
+            if (block is not SimpleRailsBlock || !IsCurvedRailBlock(block))
                 return null;
 
             // Then check that the code of the block is actually that of a curved rail block
@@ -1004,7 +1115,7 @@ namespace SuperTrains.Utilities
         public static bool IsRaisedRailBlock(Block block)
         {
             // First check that provided block is a simple rails block
-            if (!(block is SimpleRailsBlock))
+            if (block is not SimpleRailsBlock)
                 return false;
 
             // Then check that the code of the block is actually that of a raised rail block

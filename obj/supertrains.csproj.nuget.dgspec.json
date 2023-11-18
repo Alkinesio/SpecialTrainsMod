@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\alkin\\Desktop\\Supertrains\\supertrains\\supertrains\\supertrains.csproj": {}
+    "C:\\Users\\alkin\\Desktop\\supertrains\\supertrains\\supertrains\\supertrains.csproj": {}
   },
   "projects": {
-    "C:\\Users\\alkin\\Desktop\\Supertrains\\supertrains\\supertrains\\supertrains.csproj": {
+    "C:\\Users\\alkin\\Desktop\\supertrains\\supertrains\\supertrains\\supertrains.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\alkin\\Desktop\\Supertrains\\supertrains\\supertrains\\supertrains.csproj",
+        "projectUniqueName": "C:\\Users\\alkin\\Desktop\\supertrains\\supertrains\\supertrains\\supertrains.csproj",
         "projectName": "supertrains",
-        "projectPath": "C:\\Users\\alkin\\Desktop\\Supertrains\\supertrains\\supertrains\\supertrains.csproj",
+        "projectPath": "C:\\Users\\alkin\\Desktop\\supertrains\\supertrains\\supertrains\\supertrains.csproj",
         "packagesPath": "C:\\Users\\alkin\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\alkin\\Desktop\\Supertrains\\supertrains\\supertrains\\obj\\",
+        "outputPath": "C:\\Users\\alkin\\Desktop\\supertrains\\supertrains\\supertrains\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -4,139 +4,127 @@ using SuperTrains.Utilities;
 using System;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
+using Assets = SuperTrains.Utilities.AssetLocations;
+using Entities = SuperTrains.Utilities.Entities;
+
 namespace SuperTrains
 {
-    public abstract class SimpleTransport : Block
+    public abstract class SimpleTransport : Block, IWrenchOrientable
     {
-        private SimpleRailsBlock requiredRails;
-        private BlockPos requiredRailsPos;
-        private AssetLocation assetLocation;
-        private Block transport;
-
+        /// <summary> Required bottom rails. </summary>
+        private SimpleRailsBlock bottomRails;
+        /// <summary> Position for required bottom rails. </summary>
+        private BlockPos bottomRailsPosition;
+        /// <summary> (Optional) Associated type entity for the transport. </summary>
+        private AssetLocation associatedTransport;
         /// <summary>
-        /// Check and spawn the transport on interact (you can <see cref="SetAssetLocation">set asset location</see> before to call this method to set different code for variants).
+        /// Entity transport obtained from <see cref="associatedTransport">associated transport</see> asset.
         /// </summary>
-        public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handHandling)
+        private Entity entityTransport;
+
+        public SimpleRailsBlock GetDownsideRails() => bottomRails;
+        public BlockPos GetDownsideRailsPosition() => bottomRailsPosition;
+        public AssetLocation GetAssociatedTransport() => associatedTransport;
+        public Entity GetEntityTransport() => entityTransport;
+
+        public void SetAssociatedTransport(AssetLocation associatedTransport)
         {
-            CheckAndSet(slot, byEntity, blockSel, ref handHandling);
+            this.associatedTransport = associatedTransport;
         }
 
-        public void SetAssetLocation(AssetLocation assetLocation)
+        public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handling)
         {
-            this.assetLocation = assetLocation;
-        }
-
-        public bool CheckAndSet(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, ref EnumHandHandling handHandling)
-        {
-            // Check for settable transport block
-            if (!CanBeSet(slot, byEntity, blockSel))
-            {
-                return false;
-            }
-
-            // Check for missing world or transport
-            if (byEntity.World == null || transport == null)
-            {
-                return false;
-            }
-
-            // Set block
-            byEntity.World.BlockAccessor.SetBlock(transport.BlockId, blockSel.Position);
-            handHandling = EnumHandHandling.PreventDefaultAction;
-
-            return true;
-        }
-
-        public bool CanBeSet(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel)
-        {
-            if (!CheckForRails(byEntity, blockSel))
-            {
-                return false;
-            }
-
-            if (blockSel == null)
-            {
-                return false;
-            }
-
-            EntityPlayer ePlayer = null;
+            IPlayer player = null;
             if (byEntity is EntityPlayer)
-                ePlayer = byEntity as EntityPlayer;
-
-            IPlayer player = byEntity.World.PlayerByUid((ePlayer).PlayerUID);
+            {
+                player = byEntity.World.PlayerByUid(((EntityPlayer)byEntity).PlayerUID);
+            }
+            if (player == null)
+            {
+                return;
+            }
             if (!byEntity.World.Claims.TryAccess(player, blockSel.Position, EnumBlockAccessFlags.BuildOrBreak))
             {
+                return;
+            }
+            Block block = this.api.World.GetBlock(new AssetLocation(this.Code.Domain + this.Code.Path));
+            if (block == null || block is not SimpleTransport)
+            {
+                (api as ICoreClientAPI)?.TriggerIngameError(this, "notsuchtransport", $"{this.Code.Domain + this.Code.Path} not found as simple transport!");
+                return;
+            }
+            BlockPos blockPos = blockSel.Position.AddCopy(blockSel.Face);
+            string text = "";
+            BlockSelection blockSelection = blockSel.Clone();
+            blockSelection.Position.Add(blockSel.Face, 1);
+            if (((block as SimpleTransport).TryPlaceBlock(this.api.World, player, slot.Itemstack, blockSelection, ref text)))
+            {
+                if (player.WorldData.CurrentGameMode != EnumGameMode.Creative)
+                {
+                    slot.TakeOut(1);
+                    slot.MarkDirty();
+                }
+                this.api.World.PlaySoundAt(block.Sounds.Place, (double)blockPos.X + 0.5, (double)blockPos.Y, (double)blockPos.Z + 0.5, player, true, 32f, 1f);
+                handling = EnumHandHandling.PreventDefault;
+                return;
+            }
+        }
+
+        public override bool TryPlaceBlock(IWorldAccessor world, IPlayer byPlayer, ItemStack itemstack, BlockSelection blockSel, ref string failureCode)
+        {
+            // Check placeable block
+            if (!this.CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
+            {
                 return false;
             }
 
-            if (ePlayer == null || player.WorldData.CurrentGameMode != EnumGameMode.Creative)
-            {
-                slot.TakeOut(1);
-                slot.MarkDirty();
-            }
+            return base.TryPlaceBlock(world, byPlayer, itemstack, blockSel, ref failureCode);
+        }
 
-            Block transport = byEntity.World.GetBlock(assetLocation);
-            if (transport == null)
+        /// <summary> DoPlaceBlock but with a custom path that would be useful to change variant before to place it. </summary>
+        public bool DoPlaceBlock(string customPath, IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ItemStack byItemStack)
+        => world.GetBlock(CodeWithPath(customPath)).DoPlaceBlock(world, byPlayer, blockSel, byItemStack);
+
+
+        public override bool CanPlaceBlock(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ref string failureCode)
+        {
+            // Call parent's method
+            if (!base.CanPlaceBlock(world, byPlayer, blockSel, ref failureCode))
             {
-                byEntity.World.Logger.Error("Transport: No such block - {0}", assetLocation);
-                if (api.World.Side == EnumAppSide.Client)
-                {
-                    (api as ICoreClientAPI).TriggerIngameError(this, "nosuchblock", "No such block loaded - '" + assetLocation + "'.");
-                }
+                (api as ICoreClientAPI)?.TriggerIngameError(this, "nope", "NOPE!");
 
                 return false;
             }
 
-            /*
-            transport.ServerPos.X = (float)(blockSel.Position.X + ((!blockSel.DidOffset) ? blockSel.Face.Normali.X : 0)) + 0.5f;
-            transport.ServerPos.Y = blockSel.Position.Y + ((!blockSel.DidOffset) ? blockSel.Face.Normali.Y : 0);
-            transport.ServerPos.Z = (float)(blockSel.Position.Z + ((!blockSel.DidOffset) ? blockSel.Face.Normali.Z : 0)) + 0.5f;
-            transport.ServerPos.Yaw = (float)byEntity.World.Rand.NextDouble() * 2f * (float)Math.PI;
-            transport.Pos.SetFrom(transport.ServerPos);
-            transport.PositionBeforeFalling.Set(transport.ServerPos.X, transport.ServerPos.Y, transport.ServerPos.Z);
-            transport.Attributes.SetString("origin", "playerplaced");
-
-            if (Attributes != null && Attributes.IsTrue("setGuardedEntityAttribute"))
+            // Check for bottom rails
+            if (!CheckBottomRails(world, blockSel))
             {
-                transport.WatchedAttributes.SetLong("guardedEntityId", byEntity.EntityId);
-                if (ePlayer != null)
-                {
-                    transport.WatchedAttributes.SetString("guardedPlayerUid", ePlayer.PlayerUID);
-                }
+                (api as ICoreClientAPI)?.TriggerIngameError(this, "notonrails", $"Could not place {Code} because not on rails!");
+
+                return false;
             }
-            */
+
+            // Alert for missing associated entity transport
+            if (associatedTransport == null)
+            {
+                world.Logger.Warning("Associated entity transport for {0} transport block is missing!", Code);
+            }
 
             return true;
         }
 
-        public Block GetTransport()
-        {
-            return transport;
-        }
-
-        public SimpleRailsBlock GetDownsideRails()
-        {
-            return requiredRails;
-        }
-
-        public BlockPos GetDownsideRailsPos()
-        {
-            return requiredRailsPos;
-        }
-
-        private bool CheckForRails(EntityAgent byEntity, BlockSelection blockSel)
+        public bool CheckBottomRails(IWorldAccessor world, BlockSelection blockSel)
         {
             // Get coordinates as block position
-            BlockPos position = blockSel.Position;
-
-            // Get world by entity
-            IWorldAccessor world = byEntity.World;
+            BlockPos position = blockSel.Position - new BlockPos(0, 1, 0);
 
             // Must place on simple rails
             if (!Rails.IsThereRailBlock(world, position))
@@ -145,10 +133,47 @@ namespace SuperTrains
             }
 
             // Set required rails parameters
-            requiredRails = Rails.GetRailBlock(world, position);
-            requiredRailsPos = position - new BlockPos(Blocks.FaceToCoordinates(BlockFacing.DOWN));
+            bottomRails = Rails.GetRailBlock(world, position);
+            bottomRailsPosition = position - new BlockPos(Blocks.FaceToCoordinates(BlockFacing.DOWN));
 
             return true;
+        }
+
+        /// <summary> Generate associated transport on wrench interaction if possible. </summary>
+        void IWrenchOrientable.Rotate(EntityAgent byEntity, BlockSelection blockSel, int dir)
+        {
+            // Check for missing entity
+            if (byEntity == null)
+            {
+                return;
+            }
+
+            // Get world by entity
+            IWorldAccessor world = byEntity.World;
+
+            // Check for missing world
+            if (world == null)
+            {
+                return;
+            }
+
+            // Check for valid associated transport
+            if (!Assets.Check(world, associatedTransport))
+            {
+                return;
+            }
+
+            // Get associated transport
+            entityTransport = Entities.Get(world, associatedTransport);
+
+            // Spawn associated transport
+            if (!Entities.Spawn(world, blockSel, entityTransport))
+            {
+                return;
+            }
+
+            // Remove block type
+            world.BlockAccessor.RemoveBlockEntity(blockSel.Position);
         }
     }
 }
